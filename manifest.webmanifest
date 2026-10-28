@@ -1,0 +1,32 @@
+{
+  "name": "Pratik Lokanta İngilizcesi",
+  "short_name": "Lokanta EN",
+  "description": "Kanaat Lokantası personeli için pratik İngilizce kelime ve sohbet eğitimi",
+  "lang": "tr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1414c8",
+  "theme_color": "#1414c8",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
