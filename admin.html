@@ -288,8 +288,9 @@ $('loginBtn').addEventListener('click',login);
 $('pin').addEventListener('keydown',function(e){if(e.key==='Enter')login()});
 auth.onAuthStateChanged(function(u){
 if(u&&u.email===window.ADMIN_EMAIL){
+try{localStorage.setItem('lokAdminDev','1')}catch(e){}
 if(!loggedByPin&&fidOK()&&fidHas())showFid();else unlock()
-}else{if(unsub){unsub();unsub=null}$('app').hidden=true;$('fid').hidden=true;$('login').hidden=false}
+}else{try{localStorage.removeItem('lokAdminDev')}catch(e){}if(unsub){unsub();unsub=null}$('app').hidden=true;$('fid').hidden=true;$('login').hidden=false}
 });
 })();
 </script>
