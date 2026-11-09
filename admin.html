@@ -190,9 +190,49 @@ var c4=el('div');c4.appendChild(el('h4',null,'Erişim'));c4.appendChild(el('p','
 var acts=el('div','btns');
 if(r.status!=='active'){var a1=el('button','ok sm','Onayla / Erişimi aç');a1.type='button';a1.addEventListener('click',function(e){e.stopPropagation();setStatus(r.id,'active')});acts.appendChild(a1)}
 if(r.status!=='blocked'){var a2=el('button','danger sm','Erişimi kapat');a2.type='button';a2.addEventListener('click',function(e){e.stopPropagation();if(confirm(r.name+' için erişim kapatılsın mı? Uygulama bu cihazda kilitlenir.'))setStatus(r.id,'blocked')});acts.appendChild(a2)}
+var a0=el('button','alt sm','Adı düzenle');a0.type='button';a0.addEventListener('click',function(e){e.stopPropagation();var nn=prompt('Yeni ad soyad:',r.name);if(nn===null)return;nn=nn.trim();if(nn.length<2||nn.length>60){alert('Ad 2-60 karakter olmalı.');return}if(profaneName(nn)){alert('Uygunsuz ifade tespit edildi. Lütfen gerçek ad soyad girin.');return}db.collection('students').doc(r.id).update({name:nn})});acts.appendChild(a0);
 var a3=el('button','danger sm','Kaydı sil');a3.type='button';a3.addEventListener('click',function(e){e.stopPropagation();if(confirm(r.name+' kaydı tamamen silinsin mi? Bu cihaz yeniden onay isteği gönderir.'))db.collection('students').doc(r.id).delete()});acts.appendChild(a3);
 c4.appendChild(acts);g.appendChild(c4);
 dt.appendChild(g);dr.appendChild(dt);return dr}
+/* ---- Uygunsuz isim denetimi (Türkçe, İngilizce, Arapça/Rusça/İspanyolca/Almanca/Fransızca yazılışlar) ---- */
+var PF_SUB=['yarrak','yarak','siktir','sikeyim','sikerim','sikik','sikis','sikim','amcik','amcigi','aminakoy','aminakod','aminakoyim','orospu','orspu','oruspu','kahpe','kaltak','pezevenk','gavat','godos','yavsak','serefsiz','tasak','dalyarak','sikko','gotveren','goteveren','gotlek','gotunu','gotune','gotos','fuck','phuck','shit','bitch','whore','slut','bastard','nigger','nigga','faggot','pussy','asshole','cunt','dickhead','cocksucker','motherfucker','blyat','blyad','pizda','pidor','mudak','gandon','scheiss','scheisse','hurensohn','wichser','arschloch','merde','putain','connard','salope','encule','pendejo','cabron','mierda','sharmuta','sharmouta','ibnelsharmuta','kosummak','kusummak','ayrimfi'];
+var PF_EXACT=['am','aq','amk','amq','amck','mk','oc','pic','sik','sck','skm','skrm','sktr','sktir','yrrk','yrk','yrak','yark','got','gotu','ibne','ipne','pust','puta','puto','joder','suka','ebat','yebat','nahui','arsch','fck','fuk','fvck','sht','btch','ass','sikt','siktirgit','orspu','amina','aminakoyim','aminakodumun'];
+var PF_EXACT=PF_EXACT.filter(function(w){return w!=='amina'});
+function pfNorm(s){
+s=String(s||'').toLocaleLowerCase('tr').replace(/ı/g,'i').replace(/i̇/g,'i');
+try{s=s.normalize('NFD').replace(/[̀-ͯ]/g,'')}catch(e){}
+return s.replace(/ß/g,'ss').replace(/ğ/g,'g').replace(/ş/g,'s').replace(/ç/g,'c').replace(/ö/g,'o').replace(/ü/g,'u')
+.replace(/0/g,'o').replace(/1/g,'i').replace(/3/g,'e').replace(/4/g,'a').replace(/5/g,'s').replace(/7/g,'t').replace(/@/g,'a').replace(/\$/g,'s').replace(/!/g,'i').replace(/€/g,'e')}
+function pfCollapse(w){return w.replace(/(.)\1+/g,'$1')}
+var PF_SUBC=PF_SUB.map(pfCollapse),PF_EXC=PF_EXACT.map(pfCollapse);
+function pfHit(w){
+if(!w)return false;
+var c=pfCollapse(w),i;
+for(i=0;i<PF_EXACT.length;i++){if(w===PF_EXACT[i]||c===PF_EXC[i])return true}
+for(i=0;i<PF_SUB.length;i++){if(w.indexOf(PF_SUB[i])>-1||c.indexOf(PF_SUBC[i])>-1)return true}
+return false}
+function pfWild(tok){
+var lit=tok.replace(/[^a-z]/g,'');
+if(lit.length<2||lit.length===tok.length)return false;
+var re=new RegExp('^'+tok.replace(/[^a-z]/g,'.')+'$');
+var all=PF_EXACT.concat(PF_SUB);
+for(var i=0;i<all.length;i++){if(all[i].length===tok.length&&re.test(all[i]))return true}
+return false}
+function profaneName(name){
+name=String(name||'').split(/\s+/).filter(function(t){return !(/^[şŞ][ıIi]?[kK]$/.test(t)&&/[şŞ]/.test(t))&&!/^[sS]ık$/.test(t)}).join(' ');
+var n=pfNorm(name);if(!n.trim())return false;
+var toks=n.split(/\s+/).filter(Boolean).map(function(t){return t.replace(/^[^a-z*]+|[^a-z*]+$/g,'')}).filter(Boolean);
+var pure=toks.map(function(t){return t.replace(/[^a-z]/g,'')});
+var i,j;
+for(i=0;i<toks.length;i++){if(pfHit(pure[i])||pfWild(toks[i].replace(/[*.\-_#%&?^~+]/g,'*')))return true}
+var run='';
+for(i=0;i<=toks.length;i++){
+if(i<toks.length&&pure[i].length===1){run+=pure[i]}
+else{if(run.length>=2&&pfHit(run))return true;run=''}}
+var all=pure.join('');
+for(j=0;j<PF_SUB.length;j++){if(all.indexOf(PF_SUB[j])>-1||pfCollapse(all).indexOf(PF_SUBC[j])>-1)return true}
+return false}
+
 function loadResults(id){
 if(resCache[id])return;
 db.collection('results').where('deviceId','==',id).get().then(function(s){
