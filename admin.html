@@ -127,7 +127,7 @@ $('fidPin').addEventListener('click',function(){try{localStorage.removeItem(FID)
 $('fidSet').addEventListener('click',function(){fidReg().then(function(){$('fidSet').hidden=true;alert('Face ID etkinleştirildi. Bundan sonra bu cihazda sayfa Face ID ile açılır.')}).catch(function(){alert('Face ID etkinleştirilemedi.')})});
 /* ---------- Tablo ---------- */
 var COLS=[['name','Ad Soyad'],['status','Durum'],['totalSeconds','Toplam süre'],['today','Bugün'],['visits','Giriş'],['lastSeenMs','Son görülme'],['testCount','Test'],['lastScore','Son puan'],['bestPct','En iyi %']];
-function head(){var h=$('head');h.innerHTML='';COLS.forEach(function(c){var th=el('th',null,c[1]+(sortKey===c[0]?(sortDir<0?' ▼':' ▲'):''));th.addEventListener('click',function(){if(sortKey===c[0])sortDir=-sortDir;else{sortKey=c[0];sortDir=(c[0]==='name'||c[0]==='lastScore'||c[0]==='status')?1:-1}render()});h.appendChild(th)})}
+function head(){var h=$('head');h.innerHTML='';COLS.forEach(function(c){var th=el('th',null,c[1]+(sortKey===c[0]?(sortDir<0?' ▼':' ▲'):''));th.addEventListener('click',function(){if(sortKey===c[0])sortDir=-sortDir;else{sortKey=c[0];sortDir=(c[0]==='name'||c[0]==='lastScore'||c[0]==='status')?1:-1}render()});h.appendChild(th)});h.appendChild(el('th'))}
 function wordStats(d){var secs={},tot=0,rep=0,w=d.words||{};Object.keys(w).forEach(function(k){var i=k.indexOf('|'),s=i<0?'?':k.slice(0,i);var o=secs[s]||(secs[s]={d:0,t:0});o.d++;o.t+=w[k];tot+=w[k];if(w[k]>1)rep++});return{secs:secs,total:tot,distinct:Object.keys(w).length,rep:rep}}
 function topWords(d,n){var w=d.words||{};return Object.keys(w).map(function(k){return[k.slice(k.indexOf('|')+1),w[k]]}).sort(function(a,b){return b[1]-a[1]}).slice(0,n)}
 function render(){
@@ -156,18 +156,19 @@ var stale=list.filter(function(r){return r.status==='active'&&r.lastSeenMs&&now-
 if(stale.length){var sb=el('div','alert');sb.style.borderColor='var(--line)';sb.appendChild(el('div','nm','7 günden uzun süredir uygulamayı açmayanlar'));sb.appendChild(el('div','meta',stale.map(function(r){return r.name+' ('+when(r.lastSeen).slice(0,10)+')'}).join(', ')+'. Telefon kaybolmuş, değişmiş ya da kişi işten ayrılmış olabilir.'));al.appendChild(sb)}
 /* tablo */
 var b=$('body');b.innerHTML='';
-if(!list.length){var tr=el('tr');var td=el('td','empty','Henüz kayıt yok.');td.colSpan=COLS.length;tr.appendChild(td);b.appendChild(tr);return}
+if(!list.length){var tr=el('tr');var td=el('td','empty','Henüz kayıt yok.');td.colSpan=COLS.length+1;tr.appendChild(td);b.appendChild(tr);return}
 list.forEach(function(r){
 var tr=el('tr','row');
 var cells=[r.name,null,fmt(r.totalSeconds),r.today?fmt(r.today):'-',r.visits,when(r.lastSeen),r.testCount,r.lastScore,r.bestPct<0?'-':('%'+r.bestPct)];
 cells.forEach(function(v,i){var td=el('td');if(i===1){td.appendChild(el('span','chip '+r.status,STL[r.status]))}else td.textContent=String(v);tr.appendChild(td)});
+var tdx=el('td');var xb=el('button','danger sm','Sil');xb.type='button';xb.addEventListener('click',function(e){e.stopPropagation();if(confirm(r.name+' kaydı tamamen silinsin mi? Geri alınamaz. (Bu cihaz yeniden açılırsa yeniden onay ister.)'))db.collection('students').doc(r.id).delete()});tdx.appendChild(xb);tr.appendChild(tdx);
 tr.addEventListener('click',function(){open[r.id]=!open[r.id];render();if(open[r.id])loadResults(r.id)});
 b.appendChild(tr);
 if(open[r.id])b.appendChild(detail(r))
 })
 }
 function detail(r){
-var dr=el('tr','detail'),dt=el('td');dt.colSpan=COLS.length;var g=el('div','det'),d=r.d;g.style.position='sticky';g.style.left='0';g.style.width='calc(100vw - 60px)';g.style.maxWidth='960px';
+var dr=el('tr','detail'),dt=el('td');dt.colSpan=COLS.length+1;var g=el('div','det'),d=r.d;g.style.position='sticky';g.style.left='0';g.style.width='calc(100vw - 60px)';g.style.maxWidth='960px';
 var c1=el('div');c1.appendChild(el('h4',null,'Bölüm bazında süre'));var u1=el('ul'),secs=d.secs||{},mx=1,ks=Object.keys(secs);ks.forEach(function(k){if(secs[k]>mx)mx=secs[k]});
 ks.sort(function(a,b){return secs[b]-secs[a]}).forEach(function(k){var li=el('li',null,(CATS[k]||k)+': '+fmt(secs[k]));var bar=el('div','bar');bar.style.width=Math.max(4,Math.round(secs[k]/mx*100))+'%';li.appendChild(bar);u1.appendChild(li)});
 if(!ks.length)u1.appendChild(el('li','muted','Kayıt yok'));c1.appendChild(u1);
