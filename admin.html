@@ -56,6 +56,8 @@ tr.detail td{white-space:normal;background:color-mix(in srgb,var(--accent) 4%,va
 #bkm label.ck{display:flex;gap:10px;align-items:center;padding:8px 0;font-size:15px;border-bottom:1px solid var(--line)}
 #bkm label.ck input{width:20px;height:20px}
 #bkm .pb{height:10px;border-radius:6px;background:var(--line);overflow:hidden;margin:10px 0 6px}#bkm .pb i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+#bkm .th{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-height:46vh;overflow:auto;margin:6px 0 4px;padding:2px}#bkm .th figure{margin:0;cursor:pointer}#bkm .th img{width:100%;display:block;border-radius:6px;border:1px solid var(--line)}#bkm .th figcaption{font-size:11px;text-align:center;color:var(--muted);margin-top:2px}
+#bkv{position:fixed;inset:0;z-index:60;background:#111;display:flex;flex-direction:column}#bkv .vt{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;color:#fff;font-size:14px}#bkv .vs{flex:1;display:flex;overflow-x:auto;scroll-snap-type:x mandatory}#bkv .vs div{flex:none;width:100%;height:100%;scroll-snap-align:center;display:flex;align-items:center;justify-content:center}#bkv .vs img{max-width:100%;max-height:100%;object-fit:contain}
 #bkm .row{display:flex;gap:8px;margin-top:14px}#bkm .row button{flex:1}
 </style>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700;800&display=swap">
@@ -297,12 +299,16 @@ ctl=new AbortController();bookBusy=true;
 loadKitap().then(function(){return KITAP.generate({cats:cats,signal:ctl.signal,onProgress:function(f,t){bar.style.width=Math.round(f*100)+'%';tx.textContent=t+' (%'+Math.round(f*100)+')'}})}).then(function(res){
 bookBusy=false;var d=new Date(),ds=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
 file=new File([res.blob],'Pratik-Lokanta-Ingilizcesi-'+ds+'.pdf',{type:'application/pdf'});
-bx.innerHTML='';bx.appendChild(el('h2',null,'Kitap hazır ✓'));bx.appendChild(el('p',null,res.pages+' sayfa · '+(file.size/1048576).toFixed(1)+' MB'));
+bx.innerHTML='';bx.appendChild(el('h2',null,'Önizleme'));bx.appendChild(el('p',null,res.pages+' sayfa · '+(file.size/1048576).toFixed(1)+' MB. Bir sayfaya dokunarak büyütün, kaydırarak gezin. Beğenirseniz paylaşın.'));
+var th=el('div','th');res.thumbs.forEach(function(u,i){var f=document.createElement('figure');var im=new Image();im.src=u;im.alt='Sayfa '+(i+1);f.appendChild(im);f.appendChild(el('figcaption',null,String(i+1)));f.addEventListener('click',function(){openViewer(i)});th.appendChild(f)});bx.appendChild(th);
+function openViewer(i0){var v=el('div');v.id='bkv';var tp=el('div','vt');var tt=el('span',null,'Sayfa '+(i0+1)+' / '+res.pages);var cb=el('button','alt sm','Kapat');cb.type='button';cb.style.color='#fff';cb.style.borderColor='#888';cb.addEventListener('click',function(){v.remove()});tp.appendChild(tt);tp.appendChild(cb);v.appendChild(tp);
+var sc=el('div','vs');res.images.forEach(function(u,i){var d=el('div');var im=new Image();im.loading='lazy';im.decoding='async';im.src=u;d.appendChild(im);sc.appendChild(d)});v.appendChild(sc);document.body.appendChild(v);
+sc.scrollLeft=i0*sc.clientWidth;sc.addEventListener('scroll',function(){tt.textContent='Sayfa '+(Math.round(sc.scrollLeft/sc.clientWidth)+1)+' / '+res.pages})}
 var r2=el('div','row');var sh=el('button',null,'Paylaş / Kaydet');sh.type='button';
 sh.addEventListener('click',function(){
 if(navigator.canShare&&navigator.canShare({files:[file]})){navigator.share({files:[file],title:'Pratik Lokanta İngilizcesi'}).catch(function(e){if(e&&e.name!=='AbortError')dl()})}else dl()});
 function dl(){var u=URL.createObjectURL(file);var a=document.createElement('a');a.href=u;a.download=file.name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u)},60000)}
-var cl=el('button','alt','Kapat');cl.type='button';cl.addEventListener('click',close);r2.appendChild(sh);r2.appendChild(cl);bx.appendChild(r2);
+var cl=el('button','alt','Kapat');cl.type='button';cl.addEventListener('click',close);var rg=el('button','alt','Yeniden oluştur');rg.type='button';rg.addEventListener('click',function(){stepOptions()});r2.appendChild(sh);r2.appendChild(rg);r2.appendChild(cl);bx.appendChild(r2);
 bx.appendChild(el('p',null,'İpucu: iPhone\'da "Paylaş / Kaydet"e basınca WhatsApp\'ı ya da "Dosyalara Kaydet"i seçebilirsiniz.'));
 }).catch(function(e){bookBusy=false;if(ctl&&ctl.signal.aborted)return;bx.innerHTML='';bx.appendChild(el('h2',null,'Kitap oluşturulamadı'));bx.appendChild(el('p',null,String(e&&e.message||e)));var r3=el('div','row');var b1=el('button',null,'Tekrar dene');b1.type='button';b1.addEventListener('click',stepOptions);var b2=el('button','alt','Kapat');b2.type='button';b2.addEventListener('click',close);r3.appendChild(b1);r3.appendChild(b2);bx.appendChild(r3)})
 }
