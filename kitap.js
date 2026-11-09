@@ -59,10 +59,10 @@ var CSS='.bk-page{width:'+W+'px;height:'+H+'px;position:relative;overflow:hidden
 '.bk-row .tx{flex:1;min-width:0}.bk-row .en{font-weight:800;font-size:18px;line-height:1.12;letter-spacing:-.01em}'+
 '.bk-row .tr{font-size:12.5px;color:#59645b;margin-top:2px;line-height:1.2}'+
 '.bk-row .pr{display:inline-block;margin-top:5px;border-radius:9px;padding:3px 9px;font-size:12.5px;font-weight:700;line-height:1.2}'+
-'.bk-idx{position:absolute;left:28px;right:28px;top:82px;height:652px;columns:2;column-gap:22px;column-fill:auto;font-size:11px}'+
-'.bk-idx div{display:flex;gap:6px;padding:2.6px 0;border-bottom:1px dotted #d8ddd6;break-inside:avoid}'+
+'.bk-idx{position:absolute;left:28px;right:28px;top:82px;height:652px;display:flex;gap:22px;font-size:11px}.bk-idx .col{flex:1;min-width:0;overflow:hidden}'+
+'.bk-idx .col>div{display:flex;gap:6px;padding:2.6px 0;border-bottom:1px dotted #d8ddd6;break-inside:avoid}'+
 '.bk-idx b{font-weight:700;color:#1d231e}.bk-idx span{color:#59645b;flex:1;white-space:nowrap;overflow:hidden}.bk-idx i{font-style:normal;font-weight:800;color:#0f0f9a}'+
-'.bk-idx .ltr{display:block;border:0;break-after:avoid;margin:6px 0 2px;font-weight:800;font-size:15px;color:#fff;background:#1414c8;border-radius:6px;padding:1px 8px;width:30px;text-align:center}'+
+'.bk-idx .col>.ltr{display:block;border:0;break-after:avoid;margin:6px 0 2px;font-weight:800;font-size:15px;color:#fff;background:#1414c8;border-radius:6px;padding:1px 8px;width:30px;text-align:center}'+
 '.bk-line{height:34px;border-bottom:1.5px solid #dfe4dc}';
 
 function parseData(txt){
@@ -104,7 +104,7 @@ function plan(S,IMG,cats){
   var entries=[];
   pages.forEach(function(p,i){if(p.t==='sec'&&p.ch.cat!=='sohbet')p.blocks.forEach(function(bl){if(bl.rows)bl.rows.forEach(function(r){r.forEach(function(it){entries.push({en:it[1],tr:it[0],pg:i+1})})})})});
   entries.sort(function(a,b){return a.en.toLowerCase().localeCompare(b.en.toLowerCase(),'en')});
-  var EPP=60,dizinStart=pages.length+1,chunks=[];
+  var EPP=56,dizinStart=pages.length+1,chunks=[];
   var withLetters=[],last='';entries.forEach(function(e){var L=e.en.charAt(0).toUpperCase();if(L!==last){withLetters.push({ltr:L});last=L}withLetters.push(e)});
   for(var i=0;i<withLetters.length;i+=EPP)chunks.push(withLetters.slice(i,i+EPP));
   chunks.forEach(function(c,i){pages.push({t:'dizin',rows:c,idx:i,tot:chunks.length})});
@@ -174,7 +174,8 @@ function pageHTML(p,n,pl,S,IMG,dateStr){
     return'<div class="bk-page"><div class="bk-top small" style="background:'+cc+'"><div class="tt">'+p.ch.emoji+' '+esc(p.ch.name)+'</div></div><div class="bk-flow">'+flow+'</div>'+foot(n)+'</div>'
   }
   if(p.t==='dizin'){
-    var r=p.rows.map(function(e){return e.ltr?'<div class="ltr">'+esc(e.ltr)+'</div>':'<div><b>'+esc(cut(e.en,30))+'</b><span>'+esc(cut(e.tr,Math.max(6,33-Math.min(e.en.length,30))))+'</span><i>'+e.pg+'</i></div>'}).join('');
+    function rr(list){return list.map(function(e){return e.ltr?'<div class="ltr">'+esc(e.ltr)+'</div>':'<div><b>'+esc(cut(e.en,30))+'</b><span>'+esc(cut(e.tr,Math.max(6,33-Math.min(e.en.length,30))))+'</span><i>'+e.pg+'</i></div>'}).join('')}
+    var half=Math.ceil(p.rows.length/2),r='<div class="col">'+rr(p.rows.slice(0,half))+'</div><div class="col">'+rr(p.rows.slice(half))+'</div>';
     return'<div class="bk-page"><div class="bk-pad"><div class="bk-h1" style="color:#1414c8">Dizin <span style="font-size:14px;color:#8a948b;font-weight:600">İngilizce A–Z'+(p.tot>1?' · '+(p.idx+1)+'/'+p.tot:'')+'</span></div></div><div class="bk-idx">'+r+'</div>'+foot(n)+'</div>'
   }
   if(p.t==='notes'){
