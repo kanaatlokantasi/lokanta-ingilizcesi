@@ -21,6 +21,7 @@ button{min-height:40px;padding:0 14px;border-radius:10px;border:0;background:var
 @media (prefers-color-scheme:light){button{color:#fff}}
 button.alt{background:transparent;color:var(--text);border:1.5px solid var(--line);font-weight:600}
 button.ok{background:var(--ok);color:#fff}button.danger{background:transparent;color:var(--bad);border:1.5px solid var(--bad)}
+a.back{display:inline-flex;align-items:center;min-height:34px;padding:0 10px;border-radius:10px;border:1.5px solid var(--line);color:var(--text);font:600 13px inherit;text-decoration:none}
 button.sm{min-height:34px;padding:0 10px;font-size:13px}
 .err{color:var(--bad);font-weight:600;font-size:13px;margin:8px 0 0}
 .top{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:12px}
@@ -58,6 +59,7 @@ tr.detail td{white-space:normal;background:color-mix(in srgb,var(--accent) 4%,va
   <p class="sub">PIN'inizi girin.</p>
   <input id="pin" type="password" inputmode="numeric" autocomplete="current-password" placeholder="PIN">
   <p id="loginErr" class="err" hidden></p>
+  <p style="margin:12px 0 0"><a class="back" href="./">← Eğitim sayfasına dön</a></p>
   <p style="margin:14px 0 0"><button id="loginBtn" type="button" style="width:100%">Giriş</button></p>
 </div>
 <div id="fid" class="card center" hidden>
@@ -66,11 +68,12 @@ tr.detail td{white-space:normal;background:color-mix(in srgb,var(--accent) 4%,va
   <p style="margin:14px 0 0"><button id="fidBtn" type="button" style="width:100%">Face ID ile aç</button></p>
   <p style="margin:10px 0 0"><button id="fidPin" class="alt" type="button" style="width:100%">PIN ile gir</button></p>
   <p id="fidErr" class="err" hidden></p>
+  <p style="margin:12px 0 0"><a class="back" href="./">← Eğitim sayfasına dön</a></p>
 </div>
 <div id="app" hidden>
   <div class="top">
     <div><h1>Lokanta İngilizcesi</h1><p class="sub" id="updated">Yükleniyor…</p></div>
-    <div class="btns"><button class="alt sm" id="fidSet" type="button" hidden>Face ID'yi etkinleştir</button><button class="alt sm" id="csvBtn" type="button">CSV indir</button><button class="alt sm" id="outBtn" type="button">Çıkış</button></div>
+    <div class="btns"><a class="back" href="./">← Eğitim sayfası</a><button class="alt sm" id="fidSet" type="button" hidden>Face ID'yi etkinleştir</button><button class="alt sm" id="csvBtn" type="button">CSV indir</button><button class="alt sm" id="outBtn" type="button">Çıkış</button></div>
   </div>
   <div class="stats" id="stats"></div>
   <div id="alerts"></div>
