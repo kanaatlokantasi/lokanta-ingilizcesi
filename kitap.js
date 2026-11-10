@@ -117,9 +117,10 @@ function plan(S,IMG,cats){
 
 function foot(n){return'<div class="bk-foot"><span><b>Kanaat Lokantası</b> · Pratik Lokanta İngilizcesi<br>Sayfa <b>'+n+'</b></span><span class="bk-qr"><span><b>Okut ve çalış</b>Sesli dinle, kelimeyi tekrarla</span><i style="background-image:url('+QR+')"></i></span></div>'}
 
+function imgKey(it,IMG){var k=it[5]||(it[4]==='noimg'?'':it[0]);return k&&IMG[k]?k:''}
 function cardHTML(it,IMG,color){
-  var hasImg=IMG[it[0]]&&it[4]!=='noimg';
-  var top=hasImg?'<div class="bk-pic" style="background-image:url('+IMG[it[0]]+')"></div>':'<div class="bk-emo" style="background:'+rgba(color,.12)+'">'+esc(it[3]||'🍽️')+'</div>';
+  var hasImg=imgKey(it,IMG);
+  var top=hasImg?'<div class="bk-pic" style="background-image:url('+IMG[hasImg]+')"></div>':'<div class="bk-emo" style="background:'+rgba(color,.12)+'">'+esc(it[3]||'🍽️')+'</div>';
   return'<div class="bk-card">'+top+'<div class="bk-body"><div class="bk-en" style="font-size:'+enSize(it[1])+'px;color:'+color+'">'+esc(it[1])+'</div><div class="bk-tr">'+esc(it[0])+'</div></div>'+
     '<div class="bk-pr" style="background:'+rgba(color,.11)+';color:'+color+'"><small>Okunuşu</small>'+esc(it[2])+'</div></div>'
 }
@@ -130,7 +131,7 @@ function rowHTML(it,color){
 function pageHTML(p,n,pl,S,IMG,dateStr){
   var i,h='';
   if(p.t==='cover'){
-    var pics=[];S.forEach(function(s){s.items.forEach(function(it){if(IMG[it[0]]&&it[4]!=='noimg')pics.push(IMG[it[0]])})});
+    var pics=[];S.forEach(function(s){s.items.forEach(function(it){if(imgKey(it,IMG))pics.push(IMG[imgKey(it,IMG)])})});
     var pick=[];for(i=0;i<6&&pics.length;i++)pick.push(pics[Math.floor(i*pics.length/6)]);
     var pos=[[0,10,-5],[160,0,4],[320,16,-3],[14,170,3],[170,184,-4],[322,168,5]];
     var tiles=pick.map(function(u,k){return'<div class="bk-tile" style="left:'+pos[k][0]+'px;top:'+pos[k][1]+'px;transform:rotate('+pos[k][2]+'deg);background-image:url('+u+')"></div>'}).join('');
