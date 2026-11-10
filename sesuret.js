@@ -48,16 +48,24 @@ function apiErr(status,msg,code){
   return new Error('ElevenLabs hatası ('+status+'): '+(msg||''))
 }
 async function tts(o,voice,text){
+  var netErr=null;
   for(var a=0;a<6;a++){
     if(o.signal&&o.signal.aborted)throw new Error('İptal edildi');
-    var r=await fetch('https://api.elevenlabs.io/v1/text-to-speech/'+encodeURIComponent(voice)+'?output_format=mp3_44100_64',{method:'POST',signal:o.signal,
-      headers:{'xi-api-key':o.key,'Content-Type':'application/json',Accept:'audio/mpeg'},
-      body:JSON.stringify({text:text,model_id:o.model,voice_settings:{stability:o.stab,similarity_boost:0.75,speed:o.speed}})});
+    var r;
+    try{
+      r=await fetch('https://api.elevenlabs.io/v1/text-to-speech/'+encodeURIComponent(voice)+'?output_format=mp3_44100_64',{method:'POST',signal:o.signal,
+        headers:{'xi-api-key':o.key,'Content-Type':'application/json',Accept:'audio/mpeg'},
+        body:JSON.stringify({text:text,model_id:o.model,voice_settings:{stability:o.stab,similarity_boost:0.75,speed:o.speed}})})
+    }catch(e){
+      if(e&&e.name==='AbortError')throw new Error('İptal edildi');
+      netErr=e;await sleep(1500*(a+1));continue
+    }
     if(r.ok)return new Uint8Array(await r.arrayBuffer());
     var msg='',code='';try{var j=await r.json();var d=j&&j.detail;if(d&&typeof d==='object'){msg=d.message||'';code=d.status||''}else if(typeof d==='string')msg=d}catch(e){}
     if(r.status===429||r.status>=500){await sleep(1500*(a+1));continue}
     throw apiErr(r.status,msg,code)
   }
+  if(netErr)throw new Error('ElevenLabs\'e ulaşılamadı (ağ/bağlantı hatası: '+(netErr.message||netErr)+'). İnternet bağlantınızı kontrol edip tekrar deneyin. Sürerse ElevenLabs panelinde API anahtarındaki IP/izin kısıtlamasına bakın.');
   throw new Error('ElevenLabs birçok denemeye rağmen yanıt vermedi')
 }
 
@@ -138,6 +146,7 @@ function open(){
     sel.addEventListener('change',upd);fem.addEventListener('input',upd);mal.addEventListener('input',upd);
     function opts(){
       var k=key.value.trim();if(!k){alert('API anahtarını yapıştırın.');return null}
+      if(/[^\x21-\x7E]/.test(k)){alert('API anahtarında geçersiz karakter var (boşluk, satır sonu ya da Türkçe harf). Anahtarı ElevenLabs sayfasından tekrar kopyalayıp yapıştırın.');return null}
       try{if(rc.checked)localStorage.setItem('lokElKey',k);else localStorage.removeItem('lokElKey')}catch(e){}
       var s=parseFloat(String(sp.value).replace(',','.'));if(!(s>=0.7&&s<=1.2))s=0.9;
       return{key:k,female:fem.value.trim(),male:mal.value.trim(),model:sel.value,speed:s,stab:0.5,onlyMissing:oc.checked,concurrency:3}
