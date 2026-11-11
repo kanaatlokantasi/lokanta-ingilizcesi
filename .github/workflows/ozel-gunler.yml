@@ -1,0 +1,22 @@
+name: Doğum günü ve bayram bildirimleri
+on:
+  schedule:
+    - cron: '0 12 * * *'   # 12:00 UTC = 15:00 İstanbul
+  workflow_dispatch:
+    inputs:
+      test_date:
+        description: 'Deneme için tarih (YYYY-AA-GG), boş bırakılırsa bugün'
+        required: false
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --no-save firebase-admin@12
+      - run: node gonder-ozel.js
+        env:
+          FIREBASE_SA: ${{ secrets.FIREBASE_SA }}
+          TEST_DATE: ${{ github.event.inputs.test_date }}
