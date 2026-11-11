@@ -83,7 +83,7 @@ tr.detail td{white-space:normal;background:color-mix(in srgb,var(--accent) 4%,va
 <div id="app" hidden>
   <div class="top">
     <div><h1>Lokanta İngilizcesi</h1><p class="sub" id="updated">Yükleniyor…</p></div>
-    <div class="btns"><a class="back" href="./">← Eğitim sayfası</a><button class="alt sm" id="fidSet" type="button" hidden>Face ID'yi etkinleştir</button><button class="alt sm" id="csvBtn" type="button">CSV indir</button><button class="sm" id="bookBtn" type="button">📖 E-kitap (PDF)</button><button class="sm" id="sesBtn" type="button">🎙️ Ses üretici</button><button class="alt sm" id="outBtn" type="button">Çıkış</button></div>
+    <div class="btns"><a class="back" href="./">← Eğitim sayfası</a><button class="alt sm" id="fidSet" type="button" hidden>Face ID'yi etkinleştir</button><button class="alt sm" id="csvBtn" type="button">CSV indir</button><button class="sm" id="bookBtn" type="button">📖 E-kitap (PDF)</button><button class="sm" id="sesBtn" type="button">🎙️ Ses üretici</button><button class="sm" id="sarkiBtn" type="button">🎵 Şarkı üretici</button><button class="alt sm" id="outBtn" type="button">Çıkış</button></div>
   </div>
   <div class="stats" id="stats"></div>
   <div id="alerts"></div>
@@ -366,6 +366,7 @@ bx.appendChild(el('p',null,'İpucu: iPhone\'da "Paylaş / Kaydet"e basınca What
 }
 stepOptions()}
 $('bookBtn').addEventListener('click',bookDlg);
+$('sarkiBtn').addEventListener('click',function(){if(window.KSARKI)return KSARKI.open();var sc=document.createElement('script');sc.src='sarkiuret.js?t='+Date.now();sc.onload=function(){KSARKI.open()};sc.onerror=function(){alert('sarkiuret.js yüklenemedi')};document.head.appendChild(sc)});
 $('sesBtn').addEventListener('click',function(){if(window.KSES)return KSES.open();var sc=document.createElement('script');sc.src='sesuret.js?t='+Date.now();sc.onload=function(){KSES.open()};sc.onerror=function(){alert('sesuret.js yüklenemedi')};document.head.appendChild(sc)});
 $('csvBtn').addEventListener('click',function(){
 var today=dkey(new Date());

@@ -56,13 +56,14 @@ function plan(today, students) {
       tokens: same.map(s => s.token),
       title: '🎂 Doğum günün kutlu olsun ' + firstName(b.name) + '! 🎉',
       body: (ageTxt ? ageTxt + ' yaşına girdin! ' : '') + 'Kanaat ailesi seninle, nice mutlu yıllara 🥳🎁',
-      tag: 'ozel-dogum-' + nm,
+      tag: 'ozel-dogum-' + nm, url: './?dgs=1',
     });
     out.push({
       tokens: students.filter(s => !sameIds.has(s.id)).map(s => s.token),
       title: '🎈 Bugün doğum günü: ' + titleTR(b.name) + '!',
       body: (ageTxt ? ageTxt + ' yaşına giriyor 🎂 ' : '🎂 ') + 'Kutladın mı? Bir tebrik herkesi mutlu eder 🎁😊',
       tag: 'ozel-dogum-' + nm,
+      url: './?dg=' + encodeURIComponent(titleTR(b.name)) + (ageTxt ? '&yas=' + ageTxt : ''),
     });
   });
   return out.filter(m => m.tokens.length);
@@ -92,7 +93,7 @@ if (require.main === module) {
         const chunk = m.tokens.slice(i, i + 500);
         const res = await admin.messaging().sendEachForMulticast({
           tokens: chunk,
-          data: { title: m.title, body: m.body, url: './', tag: m.tag },
+          data: { title: m.title, body: m.body, url: m.url || './', tag: m.tag },
           webpush: { headers: { Urgency: 'normal', TTL: '43200' } },
         });
         for (let k = 0; k < res.responses.length; k++) {

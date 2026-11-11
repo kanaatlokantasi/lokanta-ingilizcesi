@@ -156,6 +156,22 @@ body:not(.l2locked) #l2panel{display:none!important}
 .leaderboard-list li:nth-child(3){border-color:#b3541e}
 .lb-name{font-weight:600;text-align:left;flex:1}
 .lb-score{color:var(--muted);font-size:13.5px;white-space:nowrap}
+#bdov{position:fixed;inset:0;z-index:99998;background:radial-gradient(circle at 50% 30%,#3b2a8c,#14123a 70%);display:flex;align-items:center;justify-content:center;overflow:hidden}
+#bdov canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#bdov.bdcf{background:none;pointer-events:none;z-index:99997}
+.bdbl{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.bdbl span{position:absolute;bottom:-70px;animation:bdup linear infinite;opacity:.95}
+@keyframes bdup{0%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(-55vh) rotate(6deg)}100%{transform:translateY(-120vh) rotate(-6deg)}}
+.bdbox{position:relative;z-index:2;text-align:center;color:#fff;padding:26px 22px;max-width:340px}
+.bdem{font-size:84px;line-height:1;animation:bdpop 1.4s ease-in-out infinite}
+@keyframes bdpop{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+.bdbox h2{font-size:28px;margin:14px 0 8px;color:#fff}
+.bdbox p{font-size:16px;line-height:1.45;margin:0 0 18px;color:#e8e6ff}
+.bdbox button{display:block;width:100%;border:0;border-radius:14px;font:inherit;font-weight:700;cursor:pointer}
+.bdplay{padding:15px;font-size:18px;background:#ffd166;color:#3a2a00;margin-bottom:10px}
+.bdx{padding:11px;font-size:15px;background:rgba(255,255,255,.16);color:#fff}
+#bdbn{position:fixed;left:12px;right:12px;top:12px;z-index:99999;background:#fff7e0;color:#4a3300;border:2px solid #ffd166;border-radius:14px;padding:12px 14px;font-size:15px;font-weight:600;box-shadow:0 6px 22px rgba(0,0,0,.25);text-align:center}
+
 </style>
 </head>
 <body>
@@ -1139,7 +1155,7 @@ return trkDb().then(function(db){
 var F=firebase.firestore.FieldValue,ref=db.collection('students').doc(trkDevId());
 return ref.get().then(function(snap){
 if(!snap.exists){return ref.set({name:name.slice(0,60),status:'pending',requestedAt:F.serverTimestamp(),lastSeen:F.serverTimestamp(),totalSeconds:0,dev:trkDevName()}).then(function(){trkCache('pending');return'pending'})}
-var d0=snap.data(),st=d0.status||'active';setLevel(d0.level===2?2:1,!!d0.l2req);if(d0.name&&d0.name!==getStudentName()&&!profaneName(d0.name)){try{saveStudentName(d0.name)}catch(e){}}trkCache(st);return st})
+var d0=snap.data(),st=d0.status||'active';setLevel(d0.level===2?2:1,!!d0.l2req);if(d0.name&&d0.name!==getStudentName()&&!profaneName(d0.name)){try{saveStudentName(d0.name)}catch(e){}}trkCache(st);if(st==='active'){try{bdInit(d0)}catch(e){}}return st})
 }).catch(function(){return trkCached()||'active'})
 }
 function hideLock(){var g=document.getElementById('accessgate');if(g&&g.parentNode)g.parentNode.removeChild(g);if(TRK.lockTimer){clearInterval(TRK.lockTimer);TRK.lockTimer=null}}
@@ -1158,6 +1174,95 @@ a.href='https://wa.me/'+OWNER_WHATSAPP+'?text='+encodeURIComponent('Merhaba, ben
 box.appendChild(b1);box.appendChild(a);var ad=document.createElement('a');ad.className='adm';ad.href='admin.html';ad.textContent='Yönetici girişi';box.appendChild(ad);g.appendChild(box);
 if(!TRK.lockTimer)TRK.lockTimer=setInterval(trkGate,15000)
 }
+/* Doğum günü kutlaması: balon + havai fişek + kişiye özel şarkı */
+var BDX={};
+function bdPad(n){return(n<10?'0':'')+n}
+function bdNorm(s){return String(s||'').toLocaleLowerCase('tr').replace(/\s+/g,' ').trim().split(' ')[0]}
+function bdH(s,seed,mul){var x=seed;for(var i=0;i<s.length;i++)x=(((x*mul)+s.charCodeAt(i))>>>0);return x.toString(36)}
+function bdFile(name){var n='kanaat-dg|'+bdNorm(name);return'sarki-'+bdH(n,5381,33)+bdH(n,52711,31)+'.mp3'}
+function bdTitle(s){return String(s||'').trim().split(/\s+/).map(function(w){return w.charAt(0).toLocaleUpperCase('tr')+w.slice(1).toLocaleLowerCase('tr')}).join(' ')}
+function bdIsToday(bd){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(bd||''))return false;
+  var t=new Date(),y=t.getFullYear(),cur=bdPad(t.getMonth()+1)+'-'+bdPad(t.getDate()),md=bd.slice(5),leap=(y%4===0&&y%100!==0)||y%400===0;
+  return md===cur||(md==='02-29'&&!leap&&cur==='02-28')
+}
+function bdFx(cv,mode){
+  var x=cv.getContext('2d'),W=0,H=0,P=[],run=true,t0=Date.now(),C=['#ff4d6d','#ffd166','#06d6a0','#4cc9f0','#b388ff','#ff9f1c'];
+  function rs(){W=cv.width=innerWidth;H=cv.height=innerHeight}rs();addEventListener('resize',rs);
+  function burst(px,py){var n=46,c=C[Math.random()*C.length|0];for(var i=0;i<n;i++){var a=Math.PI*2*i/n,s=2+Math.random()*4;P.push({x:px,y:py,vx:Math.cos(a)*s,vy:Math.sin(a)*s,l:60+Math.random()*30,c:c,r:2.2})}}
+  function conf(){P.push({x:Math.random()*W,y:-10,vx:(Math.random()-.5)*2,vy:2+Math.random()*3,l:260,c:C[Math.random()*C.length|0],r:3+Math.random()*3,sq:1})}
+  function stop(){run=false;removeEventListener('resize',rs);x.clearRect(0,0,W,H)}
+  function fr(){
+    if(!run)return;x.clearRect(0,0,W,H);
+    if(mode==='fw'&&Math.random()<.045)burst(W*(.12+Math.random()*.76),H*(.1+Math.random()*.4));
+    if(mode==='cf'&&Date.now()-t0<4000)for(var k=0;k<3;k++)conf();
+    for(var i=P.length-1;i>=0;i--){var p=P[i];p.x+=p.vx;p.y+=p.vy;if(!p.sq){p.vy+=.05;p.vx*=.99}p.l--;if(p.l<=0||p.y>H+20){P.splice(i,1);continue}
+      x.globalAlpha=Math.min(1,p.l/30);x.fillStyle=p.c;if(p.sq)x.fillRect(p.x,p.y,p.r,p.r*1.6);else{x.beginPath();x.arc(p.x,p.y,p.r,0,7);x.fill()}}
+    x.globalAlpha=1;
+    if(mode==='cf'&&Date.now()-t0>4000&&!P.length){stop();return}
+    requestAnimationFrame(fr)
+  }
+  fr();return{burst:burst,stop:stop,W:function(){return W},H:function(){return H}}
+}
+function bdClose(){
+  if(BDX.fx){BDX.fx.stop();BDX.fx=null}
+  if(BDX.au){try{BDX.au.pause()}catch(e){}BDX.au=null}
+  var o=document.getElementById('bdov');if(o&&o.parentNode)o.parentNode.removeChild(o);
+  var b=document.getElementById('bdbn');if(b&&b.parentNode)b.parentNode.removeChild(b)
+}
+function bdSelf(name,age){
+  bdClose();try{if(typeof stopAll==='function')stopAll()}catch(e){}
+  var o=document.createElement('div');o.id='bdov';
+  var cv=document.createElement('canvas');o.appendChild(cv);
+  var bl=document.createElement('div');bl.className='bdbl';
+  var BE=['🎈','🎈','🎈','🎉','🎈','🎊'];
+  for(var i=0;i<14;i++){var s=document.createElement('span');s.textContent=BE[i%BE.length];s.style.left=(4+i*6.8)+'%';s.style.fontSize=(30+(i*7)%26)+'px';s.style.animationDuration=(7+(i*3)%6)+'s';s.style.animationDelay=(-(i*5)%9)+'s';bl.appendChild(s)}
+  o.appendChild(bl);
+  var bx=document.createElement('div');bx.className='bdbox';
+  var e1=document.createElement('div');e1.className='bdem';e1.textContent='🎂';bx.appendChild(e1);
+  var h=document.createElement('h2');h.textContent='İyi ki doğdun '+bdTitle(String(name).trim().split(/\s+/)[0])+'!';bx.appendChild(h);
+  var p=document.createElement('p');p.textContent=(age>0&&age<100?age+' yaşına girdin! ':'')+'Kanaat ailesi seninle 🥳 Nice mutlu yıllara!';bx.appendChild(p);
+  var pb=document.createElement('button');pb.type='button';pb.className='bdplay';pb.hidden=true;pb.textContent='🎁 Şarkını dinle';bx.appendChild(pb);
+  var cb=document.createElement('button');cb.type='button';cb.className='bdx';cb.textContent='Kapat';cb.addEventListener('click',bdClose);bx.appendChild(cb);
+  o.appendChild(bx);document.body.appendChild(o);
+  BDX.fx=bdFx(cv,'fw');
+  var f=bdFile(name);
+  fetch(f,{method:'HEAD',cache:'no-store'}).then(function(r){if(r.ok)pb.hidden=false}).catch(function(){});
+  pb.addEventListener('click',function(){
+    if(!BDX.au){BDX.au=new Audio(f);BDX.au.addEventListener('ended',function(){pb.textContent='🔁 Tekrar dinle'})}
+    try{BDX.au.currentTime=0}catch(e){}
+    BDX.au.play().then(function(){pb.textContent='🎶 Çalıyor…';if(BDX.fx){for(var k=0;k<5;k++)BDX.fx.burst(BDX.fx.W()*(.15+Math.random()*.7),BDX.fx.H()*(.12+Math.random()*.4))}}).catch(function(){pb.textContent='Şarkı açılamadı, tekrar dokunun'})
+  })
+}
+function bdOther(name,age){
+  bdClose();
+  var cv=document.createElement('canvas');cv.id='bdov';cv.className='bdcf';document.body.appendChild(cv);
+  var b=document.createElement('div');b.id='bdbn';
+  b.textContent='🎈 Bugün doğum günü: '+bdTitle(name)+(age>0&&age<100?' ('+age+')':'')+' 🎂 Tebrik etmeyi unutma!';
+  b.addEventListener('click',bdClose);document.body.appendChild(b);
+  var fx=bdFx(cv,'cf');BDX.fx=fx;
+  setTimeout(function(){var el=document.getElementById('bdbn');if(el&&el.parentNode)el.parentNode.removeChild(el);var c=document.getElementById('bdov');if(c&&c.className==='bdcf'&&c.parentNode)c.parentNode.removeChild(c)},7000)
+}
+function bdInit(d0){
+  try{
+    if(!d0||!bdIsToday(d0.bd))return;
+    var today=new Date().getFullYear()+'-'+bdPad(new Date().getMonth()+1)+'-'+bdPad(new Date().getDate());
+    try{if(localStorage.getItem('lokBdSeen')===today)return;localStorage.setItem('lokBdSeen',today)}catch(e){}
+    bdSelf(d0.name||getStudentName(),new Date().getFullYear()-parseInt(d0.bd.slice(0,4),10))
+  }catch(e){}
+}
+function bdUrl(u){
+  try{
+    var q=new URL(u,location.href).searchParams;
+    if(q.get('dgtest')){bdSelf(q.get('dgtest'),parseInt(q.get('yas')||'0',10))}
+    else if(q.get('dg')){bdOther(q.get('dg'),parseInt(q.get('yas')||'0',10))}
+    else return;
+    if(history.replaceState)history.replaceState(null,'',location.pathname)
+  }catch(e){}
+}
+if('serviceWorker' in navigator){navigator.serviceWorker.addEventListener('message',function(e){if(e.data&&e.data.type==='bd')bdUrl(e.data.url)})}
+window.addEventListener('load',function(){setTimeout(function(){bdUrl(location.href)},1200)});
+window.bdTest={bdFile:bdFile,bdSelf:bdSelf,bdOther:bdOther,bdInit:bdInit,bdIsToday:bdIsToday,bdClose:bdClose,bdPad:bdPad};
 /* Günün 5 kelimesi bildirimi (FCM) */
 function pushSupported(){return !!(trkOn()&&TRK.cfg&&TRK.cfg.vapidKey&&('Notification' in window)&&('serviceWorker' in navigator)&&('PushManager' in window))}
 function pushSave(tok){return trkDb().then(function(db){var F=firebase.firestore.FieldValue;return db.collection('students').doc(trkDevId()).set({name:getStudentName().trim().slice(0,60),fcm:tok,lastSeen:F.serverTimestamp()},{merge:true})})}
