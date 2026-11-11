@@ -107,7 +107,7 @@ async function generate(o){
   var existing=o.onlyMissing?await loadExisting():{f:{},m:{},d:{}};
   var voices=[];if(o.female)voices.push(['f',o.female]);if(o.male)voices.push(['m',o.male]);
   var clips={f:{},m:{},d:{}},tasks=[];
-  dlg.forEach(function(x,i){var v=x.role==='w'?o.waiter:o.customer;if(!v)return;var k=dkeys[i];if(existing.d[k])clips.d[k]=existing.d[k];else tasks.push({g:'d',voice:v,t:x.t,k:k})});
+  dlg.forEach(function(x,i){var v=x.role==='w'?o.waiter:o.customer;if(!v)return;var k=dkeys[i];if(existing.d[k])clips.d[k]=existing.d[k];else tasks.push({g:'d',voice:v,t:x.t,k:k,stab:0.7})});
   voices.forEach(function(v){texts.forEach(function(t){var k=keyOf[t];if(existing[v[0]][k])clips[v[0]][k]=existing[v[0]][k];else tasks.push({g:v[0],voice:v[1],t:t,k:k})})});
   var total=tasks.length,done=0,chars=0;tasks.forEach(function(x){chars+=x.t.length});
   var failed=null,idx=0;
@@ -115,7 +115,7 @@ async function generate(o){
   async function worker(){
     while(!failed){
       var i=idx++;if(i>=total)return;var tk=tasks[i];
-      try{clips[tk.g][tk.k]=await tts(o,tk.voice,tk.t)}catch(e){failed=failed||e;return}
+      try{clips[tk.g][tk.k]=await tts(tk.stab?Object.assign({},o,{stab:tk.stab}):o,tk.voice,tk.t)}catch(e){failed=failed||e;return}
       done++;prog(done/total,done+' / '+total+' ses üretildi')
     }
   }
