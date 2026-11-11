@@ -87,10 +87,11 @@ tr.detail td{white-space:normal;background:color-mix(in srgb,var(--accent) 4%,va
   </div>
   <div class="stats" id="stats"></div>
   <div id="alerts"></div>
-  <div class="tabs"><button id="tabP" class="on" type="button">Kişiler</button><button id="tabE" type="button">En çok hata yapılanlar</button></div>
+  <div class="tabs"><button id="tabP" class="on" type="button">Kişiler</button><button id="tabE" type="button">En çok hata yapılanlar</button><button id="tabW" type="button">Haftalık özet</button></div>
   <div id="viewP"><div class="tablewrap"><table><thead><tr id="head"></tr></thead><tbody id="body"></tbody></table></div>
   <p class="sub" style="margin-top:10px">Süre yalnızca uygulama ekranda açıkken ve kullanılırken sayılır. Bir satıra tıklayınca bölüm bazında süre, dinlenen kelimeler, testler ve hatalar açılır.</p></div>
   <div id="viewE" hidden></div>
+  <div id="viewW" hidden></div>
 </div>
 <p id="cfgErr" class="err" hidden>Firebase ayarı (config.js) henüz girilmemiş.</p>
 </div>
@@ -104,7 +105,7 @@ var cfg=window.FB_CONFIG;
 if(!cfg||!cfg.projectId||typeof firebase==='undefined'){$('cfgErr').hidden=false;return}
 firebase.initializeApp(cfg);
 var auth=firebase.auth(),db=firebase.firestore();
-var CATS={sebze:'Sebzeler',et:'Etler',ev:'Ev yemekleri',sohbet:'Kısa Sohbetler',kelime:'Kelimeler',quiz:'Mini Test'};
+var CATS={sebze:'Sebzeler',et:'Etler',ev:'Ev yemekleri',sohbet:'Kısa Sohbetler',kelime:'Kelimeler',quiz:'Mini Test',seviye2:'Seviye 2'};
 var rows=[],sortKey='totalSeconds',sortDir=-1,open={},resCache={},unsub=null,allRes=null,view='P';
 function fmt(s){s=Math.round(s||0);if(s<60)return s+' sn';var m=Math.floor(s/60);if(m<60)return m+' dk';var h=Math.floor(m/60);return h+' sa '+(m%60)+' dk'}
 function dkey(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
@@ -114,6 +115,7 @@ function el(t,c,x){var n=document.createElement(t);if(c)n.className=c;if(x!=null
 function norm(s){return String(s||'').toLocaleLowerCase('tr').replace(/\s+/g,' ').trim()}
 function stOf(d){return d.status||'active'}
 var STL={active:'Aktif',pending:'Bekliyor',blocked:'Engelli'};
+function setLevel(id,l){var u={level:l};if(l===2)u.l2req=firebase.firestore.FieldValue.delete();return db.collection('students').doc(id).update(u)}
 function setStatus(id,st){return db.collection('students').doc(id).update({status:st})}
 function sameName(r){return rows.filter(function(o){return o.id!==r.id&&norm(o.data.name)===norm(r.data.name)})}
 /* ---------- Face ID (cihaz kilidi) ---------- */
@@ -139,14 +141,14 @@ $('fidBtn').addEventListener('click',showFid);
 $('fidPin').addEventListener('click',function(){try{localStorage.removeItem(FID)}catch(e){}auth.signOut()});
 $('fidSet').addEventListener('click',function(){fidReg().then(function(){$('fidSet').hidden=true;alert('Face ID etkinleştirildi. Bundan sonra bu cihazda sayfa Face ID ile açılır.')}).catch(function(){alert('Face ID etkinleştirilemedi.')})});
 /* ---------- Tablo ---------- */
-var COLS=[['name','Ad Soyad'],['status','Durum'],['totalSeconds','Toplam süre'],['today','Bugün'],['visits','Giriş'],['lastSeenMs','Son görülme'],['testCount','Test'],['lastScore','Son puan'],['bestPct','En iyi %']];
+var COLS=[['name','Ad Soyad'],['status','Durum'],['level','Seviye'],['totalSeconds','Toplam süre'],['today','Bugün'],['visits','Giriş'],['lastSeenMs','Son görülme'],['testCount','Test'],['lastScore','Son puan'],['bestPct','En iyi %']];
 function head(){var h=$('head');h.innerHTML='';COLS.forEach(function(c){var th=el('th',null,c[1]+(sortKey===c[0]?(sortDir<0?' ▼':' ▲'):''));th.addEventListener('click',function(){if(sortKey===c[0])sortDir=-sortDir;else{sortKey=c[0];sortDir=(c[0]==='name'||c[0]==='lastScore'||c[0]==='status')?1:-1}render()});h.appendChild(th)});h.appendChild(el('th'))}
 function wordStats(d){var secs={},tot=0,rep=0,w=d.words||{};Object.keys(w).forEach(function(k){var i=k.indexOf('|'),s=i<0?'?':k.slice(0,i);var o=secs[s]||(secs[s]={d:0,t:0});o.d++;o.t+=w[k];tot+=w[k];if(w[k]>1)rep++});return{secs:secs,total:tot,distinct:Object.keys(w).length,rep:rep}}
 function topWords(d,n){var w=d.words||{};return Object.keys(w).map(function(k){return[k.slice(k.indexOf('|')+1),w[k]]}).sort(function(a,b){return b[1]-a[1]}).slice(0,n)}
 function render(){
 head();
 var today=dkey(new Date()),now=Date.now();
-var list=rows.map(function(r){var d=r.data,ls=ts(d.lastSeen);return{id:r.id,r:r,name:d.name||'-',status:stOf(d),totalSeconds:d.totalSeconds||0,today:(d.days&&d.days[today])||0,visits:d.visits||0,lastSeen:ls,lastSeenMs:ls?ls.getTime():0,testCount:d.testCount||0,lastScore:d.lastScore||'-',bestPct:d.bestPct==null?-1:d.bestPct,days:d.days||{},d:d}});
+var list=rows.map(function(r){var d=r.data,ls=ts(d.lastSeen);return{id:r.id,r:r,name:d.name||'-',status:stOf(d),level:d.level===2?2:1,totalSeconds:d.totalSeconds||0,today:(d.days&&d.days[today])||0,visits:d.visits||0,lastSeen:ls,lastSeenMs:ls?ls.getTime():0,testCount:d.testCount||0,lastScore:d.lastScore||'-',bestPct:d.bestPct==null?-1:d.bestPct,days:d.days||{},d:d}});
 list.sort(function(a,b){var x=a[sortKey],y=b[sortKey];if(typeof x==='string')return sortDir*x.localeCompare(y,'tr');return sortDir*(x-y)});
 var tot=0,act=0,pend=0,blk=0;list.forEach(function(r){tot+=r.totalSeconds;if(r.today>0)act++;if(r.status==='pending')pend++;if(r.status==='blocked')blk++});
 var st=$('stats');st.innerHTML='';
@@ -165,6 +167,14 @@ var ok=el('button','ok sm','Onayla');ok.type='button';ok.addEventListener('click
 if(dup.length){var sw=el('button','sm','Onayla ve eski cihazı engelle');sw.type='button';sw.addEventListener('click',function(){var b=db.batch();b.update(db.collection('students').doc(r.id),{status:'active'});dup.forEach(function(o){b.update(db.collection('students').doc(o.id),{status:'blocked'})});b.commit()});a.appendChild(sw)}
 var no=el('button','danger sm','Reddet');no.type='button';no.addEventListener('click',function(){setStatus(r.id,'blocked')});a.appendChild(no);
 box.appendChild(a);al.appendChild(box)});
+list.filter(function(r){return r.status==='active'&&r.level!==2&&r.d.l2req}).forEach(function(r){
+var box=el('div','alert');box.style.borderColor='#7c3aed';
+box.appendChild(el('div','nm','Seviye 2 isteği: '+r.name));
+box.appendChild(el('div','meta','Mini Test en iyi: '+(r.bestPct<0?'test çözmemiş':'%'+r.bestPct)+' · Toplam süre: '+fmt(r.totalSeconds)+' · İstek: '+when(ts(r.d.l2req))));
+var a=el('div','acts');
+var ok=el('button','ok sm','Seviye 2\'yi aç');ok.type='button';ok.addEventListener('click',function(){setLevel(r.id,2)});a.appendChild(ok);
+var no=el('button','alt sm','Şimdilik değil');no.type='button';no.addEventListener('click',function(){db.collection('students').doc(r.id).update({l2req:firebase.firestore.FieldValue.delete()})});a.appendChild(no);
+box.appendChild(a);al.appendChild(box)});
 var stale=list.filter(function(r){return r.status==='active'&&r.lastSeenMs&&now-r.lastSeenMs>7*864e5});
 if(stale.length){var sb=el('div','alert');sb.style.borderColor='var(--line)';sb.appendChild(el('div','nm','7 günden uzun süredir uygulamayı açmayanlar'));sb.appendChild(el('div','meta',stale.map(function(r){return r.name+' ('+when(r.lastSeen).slice(0,10)+')'}).join(', ')+'. Telefon kaybolmuş, değişmiş ya da kişi işten ayrılmış olabilir.'));al.appendChild(sb)}
 /* tablo */
@@ -172,7 +182,7 @@ var b=$('body');b.innerHTML='';
 if(!list.length){var tr=el('tr');var td=el('td','empty','Henüz kayıt yok.');td.colSpan=COLS.length+1;tr.appendChild(td);b.appendChild(tr);return}
 list.forEach(function(r){
 var tr=el('tr','row');
-var cells=[r.name,null,fmt(r.totalSeconds),r.today?fmt(r.today):'-',r.visits,when(r.lastSeen),r.testCount,r.lastScore,r.bestPct<0?'-':('%'+r.bestPct)];
+var cells=[r.name,null,'S'+r.level,fmt(r.totalSeconds),r.today?fmt(r.today):'-',r.visits,when(r.lastSeen),r.testCount,r.lastScore,r.bestPct<0?'-':('%'+r.bestPct)];
 cells.forEach(function(v,i){var td=el('td');if(i===1){td.appendChild(el('span','chip '+r.status,STL[r.status]))}else td.textContent=String(v);tr.appendChild(td)});
 var tdx=el('td');var xb=el('button','danger sm','Sil');xb.type='button';xb.addEventListener('click',function(e){e.stopPropagation();if(confirm(r.name+' kaydı tamamen silinsin mi? Geri alınamaz. (Bu cihaz yeniden açılırsa yeniden onay ister.)'))db.collection('students').doc(r.id).delete()});tdx.appendChild(xb);tr.appendChild(tdx);
 tr.addEventListener('click',function(){open[r.id]=!open[r.id];render();if(open[r.id])loadResults(r.id)});
@@ -182,7 +192,9 @@ if(open[r.id])b.appendChild(detail(r))
 }
 function detail(r){
 var dr=el('tr','detail'),dt=el('td');dt.colSpan=COLS.length+1;var g=el('div','det'),d=r.d;g.style.position='sticky';g.style.left='0';g.style.width='calc(100vw - 60px)';g.style.maxWidth='960px';
-var c1=el('div');c1.appendChild(el('h4',null,'Bölüm bazında süre'));var u1=el('ul'),secs=d.secs||{},mx=1,ks=Object.keys(secs);ks.forEach(function(k){if(secs[k]>mx)mx=secs[k]});
+var c1=el('div');var lv=el('div','acts');lv.style.marginBottom='12px';lv.appendChild(el('span',null,'Seviye: '+(r.level===2?'2 (açık)':'1')));
+var lb=el('button','sm'+(r.level===2?' alt':''),r.level===2?'Seviye 1\'e al':'Seviye 2\'yi aç');lb.type='button';lb.addEventListener('click',function(e){e.stopPropagation();setLevel(r.id,r.level===2?1:2)});lv.appendChild(lb);c1.appendChild(lv);
+c1.appendChild(el('h4',null,'Bölüm bazında süre'));var u1=el('ul'),secs=d.secs||{},mx=1,ks=Object.keys(secs);ks.forEach(function(k){if(secs[k]>mx)mx=secs[k]});
 ks.sort(function(a,b){return secs[b]-secs[a]}).forEach(function(k){var li=el('li',null,(CATS[k]||k)+': '+fmt(secs[k]));var bar=el('div','bar');bar.style.width=Math.max(4,Math.round(secs[k]/mx*100))+'%';li.appendChild(bar);u1.appendChild(li)});
 if(!ks.length)u1.appendChild(el('li','muted','Kayıt yok'));c1.appendChild(u1);
 c1.appendChild(el('h4',null,'Günlük süre (son 14 gün)'));c1.lastChild.style.marginTop='12px';var u2=el('ul'),any=false;
@@ -269,8 +281,43 @@ top.forEach(function(k,i){var tr=el('tr');tr.appendChild(el('td',null,(i+1)+'. '
 t.appendChild(tb);tw.appendChild(t);v.appendChild(tw)
 }).catch(function(){v.innerHTML='<p class="err">Veri okunamadı.</p>'})
 }
-function setView(x){view=x;$('viewP').hidden=x!=='P';$('viewE').hidden=x!=='E';$('tabP').className=x==='P'?'on':'';$('tabE').className=x==='E'?'on':'';if(x==='E')renderErrors()}
-$('tabP').addEventListener('click',function(){setView('P')});$('tabE').addEventListener('click',function(){setView('E')});
+function renderWeekly(){
+var v=$('viewW');v.innerHTML='<p class="sub">Hazırlanıyor…</p>';
+var since=new Date();since.setDate(since.getDate()-6);since.setHours(0,0,0,0);
+var keys=[];for(var i=0;i<7;i++){var dd=new Date();dd.setDate(dd.getDate()-i);keys.push(dkey(dd))}
+db.collection('results').get().then(function(s){
+var res=[];s.docs.forEach(function(d){var x=d.data(),t=ts(x.at);if(t&&t>=since)res.push(x)});
+var act=[],none=[],tot=0,pend=0,l2=0;
+rows.forEach(function(r){var d=r.data,st=stOf(d);if(st==='pending'){pend++;return}if(st!=='active')return;
+var sec=0;keys.forEach(function(k){sec+=(d.days&&d.days[k])||0});tot+=sec;
+if(d.l2req&&d.level!==2)l2++;
+if(sec>0)act.push({n:d.name||'-',s:sec,lv:d.level===2?2:1});else none.push(d.name||'-')});
+act.sort(function(a,b){return b.s-a.s});
+var sc=0,tt=0,cnt={};res.forEach(function(x){sc+=x.score;tt+=x.total;(x.wrong||[]).forEach(function(w){cnt[w.p]=(cnt[w.p]||0)+1})});
+var top=Object.keys(cnt).sort(function(a,b){return cnt[b]-cnt[a]}).slice(0,5);
+var L=[];
+L.push('📊 Lokanta İngilizcesi · Haftalık özet');
+L.push(since.toLocaleDateString('tr-TR',{day:'2-digit',month:'long'})+' – '+new Date().toLocaleDateString('tr-TR',{day:'2-digit',month:'long'}));
+L.push('');
+L.push('👥 Çalışan: '+act.length+' kişi · Çalışmayan: '+none.length+' kişi');
+L.push('⏱️ Toplam süre: '+fmt(tot)+(act.length?' (kişi başı ort. '+fmt(tot/act.length)+')':''));
+L.push('📝 Test: '+res.length+' adet'+(tt?' · ortalama %'+Math.round(sc/tt*100):''));
+if(act.length){L.push('');L.push('🏆 En çok çalışanlar:');act.slice(0,3).forEach(function(a,i){L.push((i+1)+'. '+a.n+' – '+fmt(a.s)+(a.lv===2?' (Seviye 2)':''))})}
+if(none.length){L.push('');L.push('😴 Bu hafta hiç açmayanlar: '+none.join(', '))}
+if(top.length){L.push('');L.push('❌ En çok yanlış yapılan:');top.forEach(function(k){L.push('• '+k+' ('+cnt[k]+')')})}
+if(pend||l2){L.push('');if(pend)L.push('⏳ Onay bekleyen: '+pend);if(l2)L.push('🚀 Seviye 2 isteyen: '+l2)}
+var txt=L.join('\n');
+v.innerHTML='';
+v.appendChild(el('p','sub','Son 7 gün. Aşağıdaki metni kopyalayıp WhatsApp\'a yapıştırabilirsiniz.'));
+var pre=el('pre',null,txt);pre.style.cssText='white-space:pre-wrap;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;font:14px/1.5 inherit;margin:0 0 10px';v.appendChild(pre);
+var a=el('div','acts');a.style.cssText='display:flex;gap:8px;flex-wrap:wrap';
+var cp=el('button','sm','Kopyala');cp.type='button';cp.addEventListener('click',function(){var done=function(){cp.textContent='Kopyalandı ✓'};if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(done).catch(function(){})}else{var ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');done()}catch(e){}document.body.removeChild(ta)}});a.appendChild(cp);
+var wa=el('a','sm alt','WhatsApp\'ta paylaş');wa.href='https://wa.me/?text='+encodeURIComponent(txt);wa.target='_blank';wa.rel='noopener';wa.style.cssText='display:inline-flex;align-items:center;min-height:34px;padding:0 10px;border:1.5px solid currentColor;border-radius:10px;text-decoration:none;font-size:13px';a.appendChild(wa);
+v.appendChild(a)
+}).catch(function(){v.innerHTML='<p class="err">Veri okunamadı.</p>'})
+}
+function setView(x){view=x;$('viewP').hidden=x!=='P';$('viewE').hidden=x!=='E';$('viewW').hidden=x!=='W';$('tabP').className=x==='P'?'on':'';$('tabE').className=x==='E'?'on':'';$('tabW').className=x==='W'?'on':'';if(x==='E')renderErrors();if(x==='W')renderWeekly()}
+$('tabP').addEventListener('click',function(){setView('P')});$('tabE').addEventListener('click',function(){setView('E')});$('tabW').addEventListener('click',function(){setView('W')});
 function listen(){
 if(unsub)unsub();
 unsub=db.collection('students').onSnapshot(function(s){

@@ -12,6 +12,8 @@ function parseTexts(txt){
   var s0=txt.indexOf('var S=['),s1=txt.indexOf('\n];',s0);
   if(s0<0||s1<0)throw new Error('Kelime verisi bulunamadı');
   var S=(new Function('return '+txt.slice(s0+6,s1+2)))(),seen={},out=[];
+  var t0=txt.indexOf('var S2=['),t1=t0<0?-1:txt.indexOf('\n];',t0);
+  if(t0>=0&&t1>0){S=S.concat((new Function('return '+txt.slice(t0+7,t1+2)))())}
   S.forEach(function(sec){sec.items.forEach(function(it){var t=String(it[1]).trim();if(t&&!seen[t]){seen[t]=1;out.push(t)}})});
   return out
 }
