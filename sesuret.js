@@ -107,8 +107,9 @@ async function generate(o){
   var existing=o.onlyMissing?await loadExisting():{f:{},m:{},d:{}};
   var voices=[];if(o.female)voices.push(['f',o.female]);if(o.male)voices.push(['m',o.male]);
   var clips={f:{},m:{},d:{}},tasks=[];
-  dlg.forEach(function(x,i){var v=x.role==='w'?o.waiter:o.customer;if(!v)return;var k=dkeys[i];if(existing.d[k])clips.d[k]=existing.d[k];else tasks.push({g:'d',voice:v,t:x.t,k:k,stab:0.7})});
-  voices.forEach(function(v){texts.forEach(function(t){var k=keyOf[t];if(existing[v[0]][k])clips[v[0]][k]=existing[v[0]][k];else tasks.push({g:v[0],voice:v[1],t:t,k:k})})});
+  var redo=String(o.redo||'').trim().toLowerCase();function isRedo(t){return !!redo&&t.toLowerCase().indexOf(redo)!==-1}
+  dlg.forEach(function(x,i){var v=x.role==='w'?o.waiter:o.customer;if(!v)return;var k=dkeys[i];if(existing.d[k]&&!isRedo(x.t))clips.d[k]=existing.d[k];else tasks.push({g:'d',voice:v,t:x.t,k:k,stab:0.7})});
+  voices.forEach(function(v){texts.forEach(function(t){var k=keyOf[t];if(existing[v[0]][k]&&!isRedo(t))clips[v[0]][k]=existing[v[0]][k];else tasks.push({g:v[0],voice:v[1],t:t,k:k})})});
   var total=tasks.length,done=0,chars=0;tasks.forEach(function(x){chars+=x.t.length});
   var failed=null,idx=0;
   if(!total)prog(1,'Üretilecek yeni kelime yok');
@@ -147,6 +148,7 @@ function open(){
     var wai=field('Seviye 2 diyalog: garson sesi, erkek (Voice ID)','text','','Seviye 1\'den farklı bir ses ID\'si');var cus=field('Seviye 2 diyalog: müşteri sesi, kadın (Voice ID)','text','','Seviye 1\'den farklı bir ses ID\'si');
     var lm=el('label',null,'Model');lm.style.cssText='display:block;font-size:12.5px;font-weight:600;margin:10px 0 3px;color:var(--muted)';var sel=document.createElement('select');sel.style.cssText='width:100%;min-height:42px;border-radius:9px;border:1.5px solid var(--line);background:var(--card,#fff);color:var(--text);font-size:14px;padding:0 8px';MODELS.forEach(function(x){var o=document.createElement('option');o.value=x[0];o.textContent=x[1];sel.appendChild(o)});bx.appendChild(lm);bx.appendChild(sel);
     var sp=field('Konuşma hızı (0,7 – 1,2; öğrenme için 0,9 önerilir)','text','0.9');
+    var rdo=field('Yalnızca şu cümleyi yeniden üret (İngilizce metinde geçen birkaç sözcük; boş bırakın = kapalı)','text','','örn: Welcome, how many');
     var onl=el('label','ck');var oc=document.createElement('input');oc.type='checkbox';oc.checked=true;onl.appendChild(oc);onl.appendChild(document.createTextNode('Yalnızca eksik/yeni kelimeleri üret'));bx.appendChild(onl);
     var info=el('p',null,'');info.style.marginTop='10px';bx.appendChild(info);
     var texts=null;
@@ -159,7 +161,7 @@ function open(){
       if(/[^\x21-\x7E]/.test(k)){alert('API anahtarında geçersiz karakter var (boşluk, satır sonu ya da Türkçe harf). Anahtarı ElevenLabs sayfasından tekrar kopyalayıp yapıştırın.');return null}
       try{if(rc.checked)localStorage.setItem('lokElKey',k);else localStorage.removeItem('lokElKey')}catch(e){}
       var s=parseFloat(String(sp.value).replace(',','.'));if(!(s>=0.7&&s<=1.2))s=0.9;
-      return{key:k,female:fem.value.trim(),male:mal.value.trim(),waiter:wai.value.trim(),customer:cus.value.trim(),model:sel.value,speed:s,stab:0.5,onlyMissing:oc.checked,concurrency:3}
+      return{key:k,female:fem.value.trim(),male:mal.value.trim(),waiter:wai.value.trim(),redo:rdo.value.trim(),customer:cus.value.trim(),model:sel.value,speed:s,stab:0.5,onlyMissing:oc.checked,concurrency:3}
     }
     var r1=el('div','row');var tb=el('button','alt','Sesleri dene');tb.type='button';
     var out=el('p',null,'');out.style.marginTop='8px';
