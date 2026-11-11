@@ -42,8 +42,8 @@ async function compose(o,name){
     try{r=await fetch('https://api.elevenlabs.io/v1/music?output_format=mp3_44100_128',{method:'POST',signal:o.signal,headers:{'xi-api-key':o.key,'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt,music_length_ms:o.sec*1000,model_id:o.model})})}
     catch(e){if(e&&e.name==='AbortError')throw new Error('İptal edildi');netErr=e;await sleep(2000*(a+1));continue}
     if(r.ok)return new Uint8Array(await r.arrayBuffer());
-    var msg='';try{var j=await r.json();var d=j&&j.detail;msg=typeof d==='string'?d:(d&&(d.message||(d[0]&&d[0].msg)))||''}catch(e){}
-    if(r.status===401)throw new Error('API anahtarı geçersiz ya da yetkisiz (401).');
+    var msg='';try{var j=await r.json();var d=j&&j.detail;msg=typeof d==='string'?d:(d&&(d.message||d.status||(d[0]&&d[0].msg)))||''}catch(e){}
+    if(r.status===401)throw new Error('ElevenLabs anahtarı reddetti (401): '+(msg||'ayrıntı yok')+'. Anahtarın "Music / Müzik" iznine sahip olduğundan emin olun.');
     if(r.status===402||r.status===403)throw new Error('Plan/kredi sorunu ('+r.status+'): '+(msg||'Hesabınızda müzik üretme hakkı olmayabilir.'));
     if(r.status===429||r.status>=500){await sleep(3000*(a+1));continue}
     throw new Error('ElevenLabs hatası ('+r.status+'): '+msg)
