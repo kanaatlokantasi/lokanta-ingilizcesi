@@ -1,4 +1,4 @@
-const CACHE='lokanta-en-v21';
+const CACHE='lokanta-en-v22';
 try{self.window=self;importScripts('config.js')}catch(_){}
 const CORE=['./','index.html','config.js','manifest.webmanifest','icon-192.png','icon-512.png','apple-touch-icon.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting()))});
