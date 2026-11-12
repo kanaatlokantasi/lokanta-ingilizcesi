@@ -29,16 +29,16 @@ const body = joke + '\n' + pick.map(w => '• ' + w[0] + ' = ' + w[1]).join('\n'
   console.log('Hedef cihaz:', targets.length, '|', title, '|', pick.map(w => w[1]).join(', '));
   for (let i = 0; i < targets.length; i += 500) {
     const chunk = targets.slice(i, i + 500);
-    const res = await admin.messaging().sendEachForMulticast({
-      tokens: chunk.map(x => x.token),
-      data: { title, body, url: './' },
+    const res = await admin.messaging().sendEach(chunk.map(x => ({
+      token: x.token,
+      data: { title, body, url: './', did: x.id },
       webpush: { headers: { Urgency: 'normal', TTL: '43200' } },
-    });
+    })));
     for (let k = 0; k < res.responses.length; k++) {
       const r = res.responses[k];
       if (!r.success) {
         const c = r.error && r.error.code;
-        console.log('Hata:', chunk[k].id, c);
+        console.log('Hata:', chunk[k].id, c, r.error && r.error.message);
         if (c === 'messaging/registration-token-not-registered' || c === 'messaging/invalid-registration-token')
           await db.collection('students').doc(chunk[k].id).update({ fcm: admin.firestore.FieldValue.delete() });
       }

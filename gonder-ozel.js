@@ -78,35 +78,67 @@ if (require.main === module) {
   const today = process.env.TEST_DATE
     ? { y: +process.env.TEST_DATE.slice(0, 4), m: process.env.TEST_DATE.slice(5, 7), d: process.env.TEST_DATE.slice(8, 10) }
     : istanbulToday();
+  const TEST_NAME = norm(process.env.TEST_NAME || '');
+
+  // her cihaza kendi doc kimliğiyle gönderir (cihaz bildirimi alınca kontrol panelinde işaretlenir)
+  async function deliver(m, students) {
+    const byTok = {};
+    students.forEach(s => { byTok[s.token] = s; });
+    const toks = m.tokens.filter(t => byTok[t]);
+    for (let i = 0; i < toks.length; i += 500) {
+      const chunk = toks.slice(i, i + 500);
+      const res = await admin.messaging().sendEach(chunk.map(t => ({
+        token: t,
+        data: { title: m.title, body: m.body, url: m.url || './', tag: m.tag, did: byTok[t].id },
+        webpush: { headers: { Urgency: 'high', TTL: '43200' } },
+      })));
+      for (let k = 0; k < res.responses.length; k++) {
+        const r = res.responses[k], st = byTok[chunk[k]];
+        if (!r.success) {
+          const c = r.error && r.error.code;
+          console.log('  HATA', st.name, '|', c, '|', r.error && r.error.message);
+          if (c === 'messaging/registration-token-not-registered' || c === 'messaging/invalid-registration-token') {
+            console.log('  -> Bu cihazın bildirim kaydı geçersiz, silindi; kişi uygulamayı açıp "Bildirimi aç"a yeniden dokunmalı.');
+            await db.collection('students').doc(st.id).update({ fcm: admin.firestore.FieldValue.delete() });
+          }
+        } else console.log('  İletildi (FCM kabul etti):', st.name);
+      }
+      console.log('Gönderildi:', res.successCount, 'Başarısız:', res.failureCount);
+    }
+  }
+
   (async () => {
     const snap = await db.collection('students').where('status', '==', 'active').get();
-    const students = [];
-    const idOf = {};
-    snap.forEach(d => { const t = d.get('fcm'); if (t) { students.push({ id: d.id, name: d.get('name'), token: t, bd: d.get('bd') }); idOf[t] = d.id; } });
-    console.log('Tarih:', today.y + '-' + today.m + '-' + today.d, '| bildirimli cihaz:', students.length);
+    const students = [], noTok = [];
+    snap.forEach(d => {
+      const o = { id: d.id, name: d.get('name'), token: d.get('fcm'), bd: d.get('bd') };
+      if (o.token) students.push(o); else noTok.push(o);
+    });
+    console.log('Tarih:', today.y + '-' + today.m + '-' + today.d, '| aktif kişi:', snap.size, '| bildirimli cihaz:', students.length);
+    snap.forEach(d => console.log(' -', d.get('name'), '| bildirim kaydı:', d.get('fcm') ? 'VAR' : 'YOK', '| doğum tarihi:', d.get('bd') || 'girilmemiş'));
+
+    if (TEST_NAME) {
+      const hit = students.filter(s => norm(s.name).includes(TEST_NAME));
+      const miss = noTok.filter(s => norm(s.name).includes(TEST_NAME));
+      console.log('DENEME: "' + TEST_NAME + '" için bildirimli cihaz:', hit.length, '| bildirim kaydı olmayan kayıt:', miss.length);
+      if (!hit.length) { console.log('Bu kişiye gönderilemez: uygulamada bildirim kaydı yok (Bildirimi aç düğmesine dokunulmamış ya da kayıt silinmiş).'); return; }
+      const ref = hit[0];
+      const age = /^\d{4}-/.test(ref.bd || '') ? today.y - +ref.bd.slice(0, 4) : null;
+      await deliver({
+        tokens: hit.map(s => s.token),
+        title: '🎂 Doğum günün kutlu olsun ' + firstName(ref.name) + '! 🎉 (deneme)',
+        body: (age > 0 && age < 100 ? age + ' yaşına girdin! ' : '') + 'Kanaat ailesi seninle, nice mutlu yıllara 🥳🎁',
+        tag: 'ozel-dogum-deneme', url: './?dgs=1',
+      }, hit);
+      return;
+    }
+
     const msgs = plan(today, students);
     if (!msgs.length) { console.log('Bugün doğum günü ya da bayram yok.'); return; }
     for (const m of msgs) {
       console.log('Gönderiliyor:', m.title, '→', m.tokens.length, 'cihaz');
-      if (process.env.DRY_RUN) continue;
-      for (let i = 0; i < m.tokens.length; i += 500) {
-        const chunk = m.tokens.slice(i, i + 500);
-        const res = await admin.messaging().sendEachForMulticast({
-          tokens: chunk,
-          data: { title: m.title, body: m.body, url: m.url || './', tag: m.tag },
-          webpush: { headers: { Urgency: 'normal', TTL: '43200' } },
-        });
-        for (let k = 0; k < res.responses.length; k++) {
-          const r = res.responses[k];
-          if (!r.success) {
-            const c = r.error && r.error.code;
-            console.log('Hata:', idOf[chunk[k]], c);
-            if (c === 'messaging/registration-token-not-registered' || c === 'messaging/invalid-registration-token')
-              await db.collection('students').doc(idOf[chunk[k]]).update({ fcm: admin.firestore.FieldValue.delete() });
-          }
-        }
-        console.log('Gönderildi:', res.successCount, 'Başarısız:', res.failureCount);
-      }
+      if (!process.env.DRY_RUN) await deliver(m, students);
     }
+    noTok.filter(s => isBirthday(s.bd, today)).forEach(s => console.log('UYARI: bugün doğum günü olan', s.name, 'için bildirim kaydı yok, ona gitmedi.'));
   })().catch(e => { console.error(e); process.exit(1); });
 }

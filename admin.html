@@ -182,7 +182,7 @@ var b=$('body');b.innerHTML='';
 if(!list.length){var tr=el('tr');var td=el('td','empty','Henüz kayıt yok.');td.colSpan=COLS.length+1;tr.appendChild(td);b.appendChild(tr);return}
 list.forEach(function(r){
 var tr=el('tr','row');
-var cells=[r.name,null,'S'+r.level,fmt(r.totalSeconds),r.today?fmt(r.today):'-',r.visits,when(r.lastSeen),r.testCount,r.lastScore,r.bestPct<0?'-':('%'+r.bestPct)];
+var cells=[r.name+(r.d.fcm?' 🔔':''),null,'S'+r.level,fmt(r.totalSeconds),r.today?fmt(r.today):'-',r.visits,when(r.lastSeen),r.testCount,r.lastScore,r.bestPct<0?'-':('%'+r.bestPct)];
 cells.forEach(function(v,i){var td=el('td');if(i===1){td.appendChild(el('span','chip '+r.status,STL[r.status]))}else td.textContent=String(v);tr.appendChild(td)});
 var tdx=el('td');var xb=el('button','danger sm','Sil');xb.type='button';xb.addEventListener('click',function(e){e.stopPropagation();if(confirm(r.name+' kaydı tamamen silinsin mi? Geri alınamaz. (Bu cihaz yeniden açılırsa yeniden onay ister.)'))db.collection('students').doc(r.id).delete()});tdx.appendChild(xb);tr.appendChild(tdx);
 tr.addEventListener('click',function(){open[r.id]=!open[r.id];render();if(open[r.id])loadResults(r.id)});
@@ -213,6 +213,7 @@ if(rs&&rs.length){var cnt={};rs.forEach(function(x){(x.wrong||[]).forEach(functi
 if(top.length){var h5=el('h4',null,'En çok hata yaptığı kelimeler');h5.style.marginTop='12px';c3.appendChild(h5);var u6=el('ul');top.forEach(function(k){u6.appendChild(el('li',null,k+' — '+cnt[k]+' kez'))});c3.appendChild(u6)}}
 g.appendChild(c3);
 var c4=el('div');c4.appendChild(el('h4',null,'Erişim'));c4.appendChild(el('p','muted','Cihaz: '+(d.dev||'?')+' · Durum: '+STL[r.status]));
+var pn=el('p',null,'🔔 Bildirim: '+(d.fcm?'açık, cihaz kayıtlı':'kapalı ya da kayıt yok')+' · Son ulaşan: '+(d.pushAt?when(ts(d.pushAt))+' – '+(d.pushT||''):'henüz yok'));pn.style.cssText='margin:6px 0;font-size:13.5px';c4.appendChild(pn);
 var acts=el('div','btns');
 if(r.status!=='active'){var a1=el('button','ok sm','Onayla / Erişimi aç');a1.type='button';a1.addEventListener('click',function(e){e.stopPropagation();setStatus(r.id,'active')});acts.appendChild(a1)}
 if(r.status!=='blocked'){var a2=el('button','danger sm','Erişimi kapat');a2.type='button';a2.addEventListener('click',function(e){e.stopPropagation();if(confirm(r.name+' için erişim kapatılsın mı? Uygulama bu cihazda kilitlenir.'))setStatus(r.id,'blocked')});acts.appendChild(a2)}
