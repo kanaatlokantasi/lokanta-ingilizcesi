@@ -3,6 +3,7 @@
    API anahtarı yalnızca bu tarayıcıdan ElevenLabs'e gider. */
 (function(){
 var DEF={female:'XlDdozLmuTofIxK4BjPD',male:'Aa6nEBJJMKJwJkCx8VU2'};
+var SPEAK={'soup':'Soup.','bonito':'Bonito.'};/* tek sözcüklerde sondaki ünlü eklenmesini önlemek için okunacak metin */
 var MODELS=[['eleven_multilingual_v2','Multilingual v2 (önerilen, 1 kredi/karakter)',1],['eleven_flash_v2_5','Flash v2.5 (yarı fiyat, biraz daha az doğal)',0.5],['eleven_turbo_v2_5','Turbo v2.5 (yarı fiyat)',0.5]];
 function kk(t){var s=String(t).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40),h=5381,i;for(i=0;i<t.length;i++)h=(((h<<5)+h)+t.charCodeAt(i))>>>0;return s+'-'+h.toString(36)+t.length.toString(36)}
 function sleep(ms){return new Promise(function(r){setTimeout(r,ms)})}
@@ -55,6 +56,7 @@ function apiErr(status,msg,code){
   return new Error('ElevenLabs hatası ('+status+'): '+(msg||''))
 }
 async function tts(o,voice,text){
+  text=SPEAK[String(text).toLowerCase()]||text;
   var netErr=null;
   for(var a=0;a<6;a++){
     if(o.signal&&o.signal.aborted)throw new Error('İptal edildi');
@@ -107,7 +109,7 @@ async function generate(o){
   var existing=o.onlyMissing?await loadExisting():{f:{},m:{},d:{}};
   var voices=[];if(o.female)voices.push(['f',o.female]);if(o.male)voices.push(['m',o.male]);
   var clips={f:{},m:{},d:{}},tasks=[];
-  var redo=String(o.redo||'').trim().toLowerCase();function isRedo(t){return !!redo&&t.toLowerCase().indexOf(redo)!==-1}
+  var redoL=String(o.redo||'').split('|').map(function(x){return x.trim().toLowerCase()}).filter(Boolean);function isRedo(t){var l=t.toLowerCase();return redoL.some(function(r){return r.charAt(0)==='='?l===r.slice(1).trim():l.indexOf(r)!==-1})}
   dlg.forEach(function(x,i){var v=x.role==='w'?o.waiter:o.customer;if(!v)return;var k=dkeys[i];if(existing.d[k]&&!isRedo(x.t))clips.d[k]=existing.d[k];else tasks.push({g:'d',voice:v,t:x.t,k:k,stab:0.7})});
   voices.forEach(function(v){texts.forEach(function(t){var k=keyOf[t];if(existing[v[0]][k]&&!isRedo(t))clips[v[0]][k]=existing[v[0]][k];else tasks.push({g:v[0],voice:v[1],t:t,k:k})})});
   var total=tasks.length,done=0,chars=0;tasks.forEach(function(x){chars+=x.t.length});
@@ -148,7 +150,7 @@ function open(){
     var wai=field('Seviye 2 diyalog: garson sesi, erkek (Voice ID)','text','','Seviye 1\'den farklı bir ses ID\'si');var cus=field('Seviye 2 diyalog: müşteri sesi, kadın (Voice ID)','text','','Seviye 1\'den farklı bir ses ID\'si');
     var lm=el('label',null,'Model');lm.style.cssText='display:block;font-size:12.5px;font-weight:600;margin:10px 0 3px;color:var(--muted)';var sel=document.createElement('select');sel.style.cssText='width:100%;min-height:42px;border-radius:9px;border:1.5px solid var(--line);background:var(--card,#fff);color:var(--text);font-size:14px;padding:0 8px';MODELS.forEach(function(x){var o=document.createElement('option');o.value=x[0];o.textContent=x[1];sel.appendChild(o)});bx.appendChild(lm);bx.appendChild(sel);
     var sp=field('Konuşma hızı (0,7 – 1,2; öğrenme için 0,9 önerilir)','text','0.9');
-    var rdo=field('Yalnızca şu cümleyi yeniden üret (İngilizce metinde geçen birkaç sözcük; boş bırakın = kapalı)','text','','örn: Welcome, how many');
+    var rdo=field('Yalnızca şu cümleyi yeniden üret (İngilizce metinde geçen birkaç sözcük; boş bırakın = kapalı)','text','','örn: =soup|=bonito  (=: tam eşleşme, |: birden çok)');
     var onl=el('label','ck');var oc=document.createElement('input');oc.type='checkbox';oc.checked=true;onl.appendChild(oc);onl.appendChild(document.createTextNode('Yalnızca eksik/yeni kelimeleri üret'));bx.appendChild(onl);
     var info=el('p',null,'');info.style.marginTop='10px';bx.appendChild(info);
     var texts=null;
