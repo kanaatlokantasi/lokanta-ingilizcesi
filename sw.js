@@ -1,4 +1,4 @@
-const CACHE='lokanta-en-v22';
+const CACHE='lokanta-en-v23';
 try{self.window=self;importScripts('config.js')}catch(_){}
 const CORE=['./','index.html','config.js','manifest.webmanifest','icon-192.png','icon-512.png','apple-touch-icon.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting()))});
@@ -10,7 +10,7 @@ self.addEventListener('fetch',e=>{
   if(u.pathname.endsWith('/admin.html'))return;
   const fresh=r.mode==='navigate'||/\.(html|js|json|webmanifest|bin|mp3)$/.test(u.pathname)||u.pathname.endsWith('/');
   if(fresh){
-    e.respondWith(fetch(r,{cache:'no-cache'}).then(res=>{if(res.ok){const cp=res.clone();caches.open(CACHE).then(c=>c.put(r,cp))}return res}).catch(()=>caches.match(r,{ignoreSearch:true}).then(h=>h||caches.match('index.html'))));
+    const net=fetch(r,{cache:'no-cache'}).then(res=>{if(res.ok){const cp=res.clone();caches.open(CACHE).then(c=>c.put(r,cp))}return res});const back=()=>caches.match(r,{ignoreSearch:true}).then(h=>h||(r.mode==='navigate'?caches.match('index.html'):undefined));const nav=r.mode==='navigate'||u.pathname.endsWith('/')||u.pathname.endsWith('/index.html');e.respondWith(nav?Promise.race([net.catch(()=>back()),new Promise(ok=>setTimeout(()=>ok(back()),2500))]).then(x=>x||net):net.catch(()=>back()));if(nav)e.waitUntil(net.catch(()=>{}));
     return;
   }
   e.respondWith(caches.match(r).then(hit=>hit||fetch(r).then(res=>{if(res.ok){const cp=res.clone();caches.open(CACHE).then(c=>c.put(r,cp))}return res})));
