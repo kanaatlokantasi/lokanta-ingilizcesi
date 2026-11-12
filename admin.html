@@ -213,7 +213,7 @@ if(rs&&rs.length){var cnt={};rs.forEach(function(x){(x.wrong||[]).forEach(functi
 if(top.length){var h5=el('h4',null,'En çok hata yaptığı kelimeler');h5.style.marginTop='12px';c3.appendChild(h5);var u6=el('ul');top.forEach(function(k){u6.appendChild(el('li',null,k+' — '+cnt[k]+' kez'))});c3.appendChild(u6)}}
 g.appendChild(c3);
 var c4=el('div');c4.appendChild(el('h4',null,'Erişim'));c4.appendChild(el('p','muted','Cihaz: '+(d.dev||'?')+' · Durum: '+STL[r.status]));
-var pn=el('p',null,'🔔 Bildirim: '+(d.fcm?'açık, cihaz kayıtlı':'kapalı ya da kayıt yok')+' · Son ulaşan: '+(d.pushAt?when(ts(d.pushAt))+' – '+(d.pushT||''):'henüz yok'));pn.style.cssText='margin:6px 0;font-size:13.5px';c4.appendChild(pn);
+var pn=el('p',null,'🔔 Bildirim: '+(d.fcm?'açık, cihaz kayıtlı':'kapalı ya da kayıt yok')+' · Son ulaşan: '+(d.pushAt?when(ts(d.pushAt))+' – '+(d.pushT||''):'henüz yok'));pn.style.cssText='margin:6px 0;font-size:13.5px';c4.appendChild(pn);if(d.pushErr){var pe=el('p',null,'⚠ Bildirim kaydı hatası: '+d.pushErr);pe.style.cssText='margin:4px 0;font-size:13px;color:#b00020';c4.appendChild(pe)}
 var acts=el('div','btns');
 if(r.status!=='active'){var a1=el('button','ok sm','Onayla / Erişimi aç');a1.type='button';a1.addEventListener('click',function(e){e.stopPropagation();setStatus(r.id,'active')});acts.appendChild(a1)}
 if(r.status!=='blocked'){var a2=el('button','danger sm','Erişimi kapat');a2.type='button';a2.addEventListener('click',function(e){e.stopPropagation();if(confirm(r.name+' için erişim kapatılsın mı? Uygulama bu cihazda kilitlenir.'))setStatus(r.id,'blocked')});acts.appendChild(a2)}

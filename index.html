@@ -1265,14 +1265,16 @@ window.addEventListener('load',function(){setTimeout(function(){bdUrl(location.h
 window.bdTest={bdFile:bdFile,bdSelf:bdSelf,bdOther:bdOther,bdInit:bdInit,bdIsToday:bdIsToday,bdClose:bdClose,bdPad:bdPad};
 /* Günün 5 kelimesi bildirimi (FCM) */
 function pushSupported(){return !!(trkOn()&&TRK.cfg&&TRK.cfg.vapidKey&&('Notification' in window)&&('serviceWorker' in navigator)&&('PushManager' in window))}
-function pushSave(tok){return trkDb().then(function(db){var F=firebase.firestore.FieldValue;return db.collection('students').doc(trkDevId()).set({name:getStudentName().trim().slice(0,60),fcm:tok,lastSeen:F.serverTimestamp()},{merge:true})})}
+function pushSave(tok){return trkDb().then(function(db){var F=firebase.firestore.FieldValue;return db.collection('students').doc(trkDevId()).set({name:getStudentName().trim().slice(0,60),fcm:tok,pushErr:F.delete(),lastSeen:F.serverTimestamp()},{merge:true})})}
+function pushFail(e){var m=String((e&&(e.code||e.message))||e||'bilinmeyen hata').slice(0,120);try{localStorage.setItem('lokPushErr',m)}catch(_){}try{trkDb().then(function(db){return db.collection('students').doc(trkDevId()).set({pushErr:m},{merge:true})}).catch(function(){})}catch(_){}return m}
+function pushShowErr(b,m){b.hidden=false;b.innerHTML='';b.appendChild(el('span',null,'🔔 Bildirim kaydı yapılamadı: '+m));var rt=el('button',null,'Tekrar dene');rt.type='button';rt.addEventListener('click',function(){rt.textContent='Bekleyin…';pushToken().then(function(){b.hidden=true;try{localStorage.setItem('lokPushAt',String(Date.now()))}catch(e){}}).catch(function(e){pushShowErr(b,pushFail(e))})});b.appendChild(rt)}
 function pushToken(){var B='https://www.gstatic.com/firebasejs/10.12.2/';return trkDb().then(function(){return trkLoad(B+'firebase-messaging-compat.js')}).then(function(){return navigator.serviceWorker.ready}).then(function(reg){return firebase.messaging().getToken({vapidKey:TRK.cfg.vapidKey,serviceWorkerRegistration:reg})}).then(function(t){if(!t)throw new Error('token yok');return pushSave(t).then(function(){try{localStorage.setItem('lokPush','1')}catch(e){}return t})})}
 function pushBar(){var b=document.getElementById('pushbar');if(!b)return;
 if(!pushSupported()||Notification.permission==='denied'){b.hidden=true;return}
 var on=false;try{on=localStorage.getItem('lokPush')==='1'}catch(e){}
-if(Notification.permission==='granted'){b.hidden=true;if(!on||Date.now()-(+localStorage.getItem('lokPushAt')||0)>6048e5){pushToken().then(function(){try{localStorage.setItem('lokPushAt',String(Date.now()))}catch(e){}}).catch(function(){})}return}
+if(Notification.permission==='granted'){b.hidden=true;if(!on||Date.now()-(+localStorage.getItem('lokPushAt')||0)>6048e5){pushToken().then(function(){try{localStorage.setItem('lokPushAt',String(Date.now()))}catch(e){}}).catch(function(e){pushShowErr(b,pushFail(e))})}return}
 b.hidden=false;b.innerHTML='';var sp=el('span',null,'🔔 Servis zili: 2 günde bir “Günün 5 kelimesi” bildirimi alın.');var bt=el('button',null,'Bildirimi aç');bt.type='button';
-bt.addEventListener('click',function(){bt.textContent='Bekleyin…';Notification.requestPermission().then(function(p){if(p!=='granted'){b.hidden=true;return}return pushToken().then(function(){b.hidden=true;try{localStorage.setItem('lokPushAt',String(Date.now()))}catch(e){}})}).catch(function(){bt.textContent='Olmadı, tekrar dene'})});
+bt.addEventListener('click',function(){bt.textContent='Bekleyin…';Notification.requestPermission().then(function(p){if(p!=='granted'){b.hidden=true;return}return pushToken().then(function(){b.hidden=true;try{localStorage.setItem('lokPushAt',String(Date.now()))}catch(e){}})}).catch(function(e){pushShowErr(b,pushFail(e))})});
 b.appendChild(sp);b.appendChild(bt)}
 function trkGate(){
 TRK.lastGate=Date.now();
