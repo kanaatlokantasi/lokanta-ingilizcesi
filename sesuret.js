@@ -147,7 +147,8 @@ function open(){
     var key=field('ElevenLabs API anahtarı','password',saved,'sk_…');
     var rem=el('label','ck');var rc=document.createElement('input');rc.type='checkbox';rc.checked=!!saved;rem.appendChild(rc);rem.appendChild(document.createTextNode('Bu cihazda hatırla'));bx.appendChild(rem);
     var fem=field('Kadın sesi (Voice ID)','text',DEF.female);var mal=field('Erkek sesi (Voice ID)','text',DEF.male);
-    var wai=field('Seviye 2 diyalog: garson sesi, erkek (Voice ID)','text','','Seviye 1\'den farklı bir ses ID\'si');var cus=field('Seviye 2 diyalog: müşteri sesi, kadın (Voice ID)','text','','Seviye 1\'den farklı bir ses ID\'si');
+    var sw='',sc='';try{sw=localStorage.getItem('lokElW')||'';sc=localStorage.getItem('lokElC')||''}catch(e){}
+    var wai=field('Seviye 2 diyalog: garson sesi, erkek (Voice ID)','text',sw,'Seviye 1\'den farklı bir ses ID\'si');var cus=field('Seviye 2 diyalog: müşteri sesi, kadın (Voice ID)','text',sc,'Seviye 1\'den farklı bir ses ID\'si');
     var lm=el('label',null,'Model');lm.style.cssText='display:block;font-size:12.5px;font-weight:600;margin:10px 0 3px;color:var(--muted)';var sel=document.createElement('select');sel.style.cssText='width:100%;min-height:42px;border-radius:9px;border:1.5px solid var(--line);background:var(--card,#fff);color:var(--text);font-size:14px;padding:0 8px';MODELS.forEach(function(x){var o=document.createElement('option');o.value=x[0];o.textContent=x[1];sel.appendChild(o)});bx.appendChild(lm);bx.appendChild(sel);
     var sp=field('Konuşma hızı (0,7 – 1,2; öğrenme için 0,9 önerilir)','text','0.9');
     var rdo=field('Yalnızca şu cümleyi yeniden üret (İngilizce metinde geçen birkaç sözcük; boş bırakın = kapalı)','text','','örn: =soup|=bonito  (=: tam eşleşme, |: birden çok)');
@@ -162,6 +163,7 @@ function open(){
       var k=key.value.trim();if(!k){alert('API anahtarını yapıştırın.');return null}
       if(/[^\x21-\x7E]/.test(k)){alert('API anahtarında geçersiz karakter var (boşluk, satır sonu ya da Türkçe harf). Anahtarı ElevenLabs sayfasından tekrar kopyalayıp yapıştırın.');return null}
       try{if(rc.checked)localStorage.setItem('lokElKey',k);else localStorage.removeItem('lokElKey')}catch(e){}
+      try{if(wai.value.trim())localStorage.setItem('lokElW',wai.value.trim());if(cus.value.trim())localStorage.setItem('lokElC',cus.value.trim())}catch(e){}
       var s=parseFloat(String(sp.value).replace(',','.'));if(!(s>=0.7&&s<=1.2))s=0.9;
       return{key:k,female:fem.value.trim(),male:mal.value.trim(),waiter:wai.value.trim(),redo:rdo.value.trim(),customer:cus.value.trim(),model:sel.value,speed:s,stab:0.5,onlyMissing:oc.checked,concurrency:3}
     }
