@@ -3,7 +3,7 @@
    API anahtarı yalnızca bu tarayıcıdan ElevenLabs'e gider. */
 (function(){
 var DEF={female:'XlDdozLmuTofIxK4BjPD',male:'Aa6nEBJJMKJwJkCx8VU2'};
-var SPEAK={'cabbage':'Cabbage.','lettuce':'Lettuce.','quince':'Quince.','hazelnut':'Nuts.','sea bass':'See bass.','soup':'Soup.','bonito':'Bonito.','roasted lamb with potatoes':'Roasted lamb with potatoes.','oven baked lamb with potatoes':'Oven baked lamb with potatoes.','beef with potatoes, carrots and thyme':'Beef with potatoes, carrots and thyme.','bulgur rice':'Bulgur rice.'};/* tek sözcüklerde sondaki ünlü eklenmesini önlemek için okunacak metin */
+var SPEAK={'cabbage':'Cabbage.','lettuce':'Lettuce.','quince':'Quince.','nuts':'Nuts.','sea bass':'See bass.','soup':'Soup.','bonito':'Bonito.','roasted lamb with potatoes':'Roasted lamb with potatoes.','oven baked lamb with potatoes':'Oven baked lamb with potatoes.','beef with potatoes, carrots and thyme':'Beef with potatoes, carrots and thyme.','bulgur rice':'Bulgur rice.'};/* tek sözcüklerde sondaki ünlü eklenmesini önlemek için okunacak metin */
 var MODELS=[['eleven_multilingual_v2','Multilingual v2 (önerilen, 1 kredi/karakter)',1],['eleven_flash_v2_5','Flash v2.5 (yarı fiyat, biraz daha az doğal)',0.5],['eleven_turbo_v2_5','Turbo v2.5 (yarı fiyat)',0.5]];
 function kk(t){var s=String(t).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40),h=5381,i;for(i=0;i<t.length;i++)h=(((h<<5)+h)+t.charCodeAt(i))>>>0;return s+'-'+h.toString(36)+t.length.toString(36)}
 function sleep(ms){return new Promise(function(r){setTimeout(r,ms)})}
