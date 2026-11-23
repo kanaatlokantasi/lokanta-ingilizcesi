@@ -114,7 +114,7 @@ function when(d){return d?d.toLocaleString('tr-TR',{day:'2-digit',month:'2-digit
 function el(t,c,x){var n=document.createElement(t);if(c)n.className=c;if(x!=null)n.textContent=x;return n}
 function norm(s){return String(s||'').toLocaleLowerCase('tr').replace(/\s+/g,' ').trim()}
 function stOf(d){return d.status||'active'}
-var STL={active:'Aktif',pending:'Bekliyor',blocked:'Engelli'};
+var STL={active:'Onaylı',pending:'Bekliyor',blocked:'Engelli'};
 function setLevel(id,l){var u={level:l};if(l===2)u.l2req=firebase.firestore.FieldValue.delete();return db.collection('students').doc(id).update(u)}
 function setStatus(id,st){return db.collection('students').doc(id).update({status:st})}
 function sameName(r){return rows.filter(function(o){return o.id!==r.id&&norm(o.data.name)===norm(r.data.name)})}
@@ -183,7 +183,7 @@ if(!list.length){var tr=el('tr');var td=el('td','empty','Henüz kayıt yok.');td
 list.forEach(function(r){
 var tr=el('tr','row');
 var cells=[r.name+(r.d.fcm?' 🔔':''),null,'S'+r.level,fmt(r.totalSeconds),r.today?fmt(r.today):'-',r.visits,when(r.lastSeen),r.testCount,r.lastScore,r.bestPct<0?'-':('%'+r.bestPct)];
-cells.forEach(function(v,i){var td=el('td');if(i===1){td.appendChild(el('span','chip '+r.status,STL[r.status]))}else td.textContent=String(v);tr.appendChild(td)});
+cells.forEach(function(v,i){var td=el('td');if(i===1){td.appendChild(el('span','chip '+r.status,STL[r.status]));if(r.status==='active'&&(!r.lastSeenMs||now-r.lastSeenMs>7*864e5)){var ps=el('span','chip pending','Pasif');ps.style.marginLeft='6px';ps.title='7 günden uzun süredir uygulamayı açmadı';td.appendChild(ps)}}else td.textContent=String(v);tr.appendChild(td)});
 var tdx=el('td');var xb=el('button','danger sm','Sil');xb.type='button';xb.addEventListener('click',function(e){e.stopPropagation();if(confirm(r.name+' kaydı tamamen silinsin mi? Geri alınamaz. (Bu cihaz yeniden açılırsa yeniden onay ister.)'))db.collection('students').doc(r.id).delete()});tdx.appendChild(xb);tr.appendChild(tdx);
 tr.addEventListener('click',function(){open[r.id]=!open[r.id];render();if(open[r.id])loadResults(r.id)});
 b.appendChild(tr);
