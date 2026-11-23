@@ -81,16 +81,16 @@ async function tts(o,voice,text){
 /* --- Mevcut paket (eksikleri üretmek için) --- */
 async function loadExisting(){
   var res={f:{},m:{},d:{}};
-  try{
-    var r=await fetch('ses.json?t='+Date.now(),{cache:'no-store'});if(!r.ok)return res;
-    var man=await r.json();
-    for(var g of['f','m','d']){
-      if(!man[g]||!Object.keys(man[g]).length)continue;
-      var b=await fetch('ses-'+g+'.bin?t='+Date.now(),{cache:'no-store'});if(!b.ok)continue;
-      var buf=new Uint8Array(await b.arrayBuffer());
-      Object.keys(man[g]).forEach(function(k){var p=man[g][k];res[g][k]=buf.slice(p[0],p[0]+p[1])})
-    }
-  }catch(e){}
+  var r=await fetch('ses.json?t='+Date.now(),{cache:'no-store'});
+  if(!r.ok)throw new Error('Mevcut ses.json okunamadı (HTTP '+r.status+'). Üretim başlatılmadı, kredi harcanmadı.');
+  var man=await r.json();
+  for(var g of['f','m','d']){
+    if(!man[g]||!Object.keys(man[g]).length)continue;
+    var b=await fetch('ses-'+g+'.bin?t='+Date.now(),{cache:'no-store'});
+    if(!b.ok)throw new Error('ses-'+g+'.bin okunamadı (HTTP '+b.status+'). Üretim başlatılmadı, kredi harcanmadı.');
+    var buf=new Uint8Array(await b.arrayBuffer());
+    Object.keys(man[g]).forEach(function(k){var p=man[g][k];res[g][k]=buf.slice(p[0],p[0]+p[1])})
+  }
   return res
 }
 function pack(clips,keys){
@@ -113,6 +113,9 @@ async function generate(o){
   dlg.forEach(function(x,i){var v=x.role==='w'?o.waiter:o.customer;if(!v)return;var k=dkeys[i];if(existing.d[k]&&!isRedo(x.t))clips.d[k]=existing.d[k];else tasks.push({g:'d',voice:v,t:x.t,k:k,stab:0.7})});
   voices.forEach(function(v){texts.forEach(function(t){var k=keyOf[t];if(existing[v[0]][k]&&!isRedo(t))clips[v[0]][k]=existing[v[0]][k];else tasks.push({g:v[0],voice:v[1],t:t,k:k})})});
   var total=tasks.length,done=0,chars=0;tasks.forEach(function(x){chars+=x.t.length});
+  var exN=Object.keys(existing.f).length+Object.keys(existing.m).length+Object.keys(existing.d).length;
+  if(o.onlyMissing&&total>150&&!o.force)throw new Error('Güvenlik durdurması: '+total+' klip üretilecekti (mevcut pakette '+exN+' klip okundu). Beklenen sayı çok daha az; kredi harcanmadı. Mevcut sesler eşleşmiyor olabilir, Claude\'a bildirin.');
+  prog(0,'Mevcut '+exN+' klip okundu · üretilecek '+total+' klip');
   var failed=null,idx=0;
   if(!total)prog(1,'Üretilecek yeni kelime yok');
   async function worker(){
@@ -124,12 +127,15 @@ async function generate(o){
   }
   var ws=[];for(var w=0;w<(o.concurrency||3);w++)ws.push(worker());
   await Promise.all(ws);
-  if(failed)throw failed;
+  if(failed){if(done>0){try{failed.partial=build(true)}catch(e2){}}throw failed}
+  return build(false);
+  function build(part){
   var keys=texts.map(function(t){return keyOf[t]}),files=[],man={v:1,n:texts.length,date:new Date().toISOString().slice(0,10)},bytes=0;
   ['f','m','d'].forEach(function(g){var has=g==='d'?!!(o.waiter||o.customer):voices.some(function(v){return v[0]===g});if(!has)clips[g]=existing[g];var p=pack(clips[g],g==='d'?dkeys:keys);man[g]=p.man;if(p.bin.length){files.push({name:'ses-'+g+'.bin',data:p.bin});bytes+=p.bin.length}});
   files.push({name:'ses.json',data:new TextEncoder().encode(JSON.stringify(man))});
   var sample=null;voices.forEach(function(v){var k=keys[0];if(clips[v[0]][k]&&!sample)sample=clips[v[0]][k]});
-  return{zip:makeZip(files),generated:total,chars:chars,bytes:bytes,count:texts.length,clips:clips,keys:keys,texts:texts}
+  return{zip:makeZip(files),generated:part?done:total,chars:chars,bytes:bytes,count:texts.length,clips:clips,keys:keys,texts:texts}
+  }
 }
 
 /* --- Arayüz --- */
@@ -196,7 +202,9 @@ function open(){
       sh.addEventListener('click',function(){if(navigator.canShare&&navigator.canShare({files:[lastZip]})){navigator.share({files:[lastZip],title:'Ses paketi'}).catch(function(e){if(e&&e.name!=='AbortError')dl()})}else dl()});
       var cl=el('button','alt','Kapat');cl.type='button';cl.addEventListener('click',close);r2.appendChild(sh);r2.appendChild(cl);bx.appendChild(r2);
       bx.appendChild(el('p',null,'Bu zip dosyasını Claude\'a sohbette gönderin; siteye ben yüklerim.'))
-    }).catch(function(e){if(ctl&&ctl.signal.aborted)return;bx.innerHTML='';bx.appendChild(el('h2',null,'Üretim durdu'));bx.appendChild(el('p',null,String(e&&e.message||e)));var r3=el('div','row');var b1=el('button',null,'Geri dön');b1.type='button';b1.addEventListener('click',stepOptions);var b2=el('button','alt','Kapat');b2.type='button';b2.addEventListener('click',close);r3.appendChild(b1);r3.appendChild(b2);bx.appendChild(r3)})
+    }).catch(function(e){if(ctl&&ctl.signal.aborted)return;bx.innerHTML='';bx.appendChild(el('h2',null,'Üretim durdu'));bx.appendChild(el('p',null,String(e&&e.message||e)));
+      if(e&&e.partial){var pr=e.partial;var pd=new Date();var pn='ses-paketi-kismi-'+pd.getFullYear()+'-'+('0'+(pd.getMonth()+1)).slice(-2)+'-'+('0'+pd.getDate()).slice(-2)+'.zip';var pf=new File([pr.zip],pn,{type:'application/zip'});bx.appendChild(el('p',null,'Şimdiye kadar üretilen '+pr.generated+' klip kaybolmadı. Önce bu kısmi paketi kaydedin, sonra Geri dön ile kalanı üretin.'));var pb2=el('button',null,'Kısmi paketi Paylaş / Kaydet');pb2.type='button';pb2.addEventListener('click',function(){if(navigator.canShare&&navigator.canShare({files:[pf]})){navigator.share({files:[pf],title:'Ses paketi (kısmi)'}).catch(function(){})}else{var u=URL.createObjectURL(pf);var a=document.createElement('a');a.href=u;a.download=pn;document.body.appendChild(a);a.click();a.remove()}});bx.appendChild(pb2)}
+      var r3=el('div','row');var b1=el('button',null,'Geri dön');b1.type='button';b1.addEventListener('click',stepOptions);var b2=el('button','alt','Kapat');b2.type='button';b2.addEventListener('click',close);r3.appendChild(b1);r3.appendChild(b2);bx.appendChild(r3)})
   }
   stepOptions()
 }
