@@ -1,4 +1,4 @@
-const CACHE='lokanta-en-v24';
+const CACHE='lokanta-en-v25';
 try{self.window=self;importScripts('config.js')}catch(_){}
 const CORE=['./','index.html','config.js','manifest.webmanifest','icon-192.png','icon-512.png','apple-touch-icon.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting()))});
@@ -8,7 +8,12 @@ self.addEventListener('fetch',e=>{
   const u=new URL(r.url);
   if(r.method!=='GET'||u.origin!==location.origin)return;
   if(u.pathname.endsWith('/admin.html'))return;
-  const fresh=r.mode==='navigate'||/\.(html|js|json|webmanifest|bin|mp3)$/.test(u.pathname)||u.pathname.endsWith('/');
+  if(r.headers.has('range'))return;
+  if(u.pathname.endsWith('.bin')){ // ses paketleri: telefonda varsa internete sorulmaz (sürüm adresteki ?v= ile değişir)
+    e.respondWith(caches.open(CACHE).then(c=>c.match(r).then(hit=>hit||fetch(r).then(res=>{if(res.ok&&res.status===200){const cp=res.clone();c.keys().then(ks=>Promise.all(ks.filter(k=>{const x=new URL(k.url);return x.pathname===u.pathname&&x.search!==u.search}).map(k=>c.delete(k)))).then(()=>c.put(r,cp))}return res}))));
+    return;
+  }
+  const fresh=r.mode==='navigate'||/\.(html|js|json|webmanifest|mp3)$/.test(u.pathname)||u.pathname.endsWith('/');
   if(fresh){
     const net=fetch(r,{cache:'no-cache'}).then(res=>{if(res.ok){const cp=res.clone();caches.open(CACHE).then(c=>c.put(r,cp))}return res});const back=()=>caches.match(r,{ignoreSearch:true}).then(h=>h||(r.mode==='navigate'?caches.match('index.html'):undefined));const nav=r.mode==='navigate'||u.pathname.endsWith('/')||u.pathname.endsWith('/index.html');e.respondWith(nav?Promise.race([net.catch(()=>back()),new Promise(ok=>setTimeout(()=>ok(back()),2500))]).then(x=>x||net):net.catch(()=>back()));if(nav)e.waitUntil(net.catch(()=>{}));
     return;
